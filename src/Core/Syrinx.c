@@ -32,8 +32,8 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
-    SyrVulkInstance_Destroy(syrinx->instance);
     SyrDevice_Destroy(syrinx->device);
+    SyrVulkInstance_Destroy(syrinx->instance);
 }
 
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx)

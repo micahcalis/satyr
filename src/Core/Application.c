@@ -18,7 +18,7 @@ SyrResult SyrApplication_Bootup(SyrApplication* application, const SyrConfig* co
 
 SyrResult SyrApplication_Initialize(const SyrConfig* config, SyrApplication** application)
 {
-    *application = SYR_NEW((*application));
+    *application = SYR_NEW(*application);
     (*application)->isRunning = false;
 
     (*application)->syrinx = SyrSyrinx_Create(config);
