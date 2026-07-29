@@ -1,0 +1,33 @@
+version: '3'
+
+vars:
+  PROJECT_NAME: "Satyr"
+  BUILD_DIR: "build"
+  BIN_DIR: "bin"
+  BUILD_TYPE: '{{.BUILD_TYPE | default "Debug"}}'
+  JOBS: '{{.JOBS}}' 
+
+tasks:
+  configure:
+    desc: Configure the project using CMake and Ninja
+    cmds:
+      - cmake -S . -B {{.BUILD_DIR}} -G Ninja -DCMAKE_BUILD_TYPE={{.BUILD_TYPE}}
+    status:
+      - test -f {{.BUILD_DIR}}/build.ninja
+
+  build:
+    desc: Build the project
+    deps: [configure]
+    cmds:
+      - cmake --build {{.BUILD_DIR}} --config {{.BUILD_TYPE}} -j {{.JOBS}}
+
+  run:
+    desc: Run the compiled executable
+    deps: [build]
+    cmds:
+      - ./{{.BIN_DIR}}/{{.PROJECT_NAME}}
+
+  clean:
+    desc: Remove the build directory
+    cmds:
+      - cmake -E rm -rf {{.BUILD_DIR}}
