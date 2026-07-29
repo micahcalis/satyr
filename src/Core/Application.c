@@ -11,7 +11,6 @@ typedef struct SyrApplication
 
 SyrResult SyrApplication_Bootup(SyrApplication* application, const SyrConfig* config)
 {
-    application->syrinx = SyrSyrinx_Create(config);
     SyrResult syrinxResult = SyrSyrinx_InitializeVulkan(application->syrinx, config);
 
     return syrinxResult;
@@ -19,8 +18,10 @@ SyrResult SyrApplication_Bootup(SyrApplication* application, const SyrConfig* co
 
 SyrResult SyrApplication_Initialize(const SyrConfig* config, SyrApplication** application)
 {
-    *application = malloc(sizeof(SyrApplication));
+    *application = SYR_NEW((*application));
     (*application)->isRunning = false;
+
+    (*application)->syrinx = SyrSyrinx_Create(config);
 
     if (config->bootupOnStartup)
     {
@@ -50,7 +51,7 @@ void SyrApplication_Run(SyrApplication* application)
 
 void SyrApplication_Cleanup(SyrApplication* application)
 {
-    // cleanup vulkan
+    SyrSyrinx_Destroy(application->syrinx);
 }
 
 void SyrApplication_Terminate(SyrApplication* application)

@@ -18,3 +18,4 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.c")
 add_executable(Satyr ${SRC_FILES})
 
 target_link_libraries(Satyr PRIVATE Vulkan::Vulkan)
+target_include_directories(Satyr PRIVATE ${CMAKE_SOURCE_DIR}/src)
