@@ -2,7 +2,7 @@
 #include "Core/Application.h"
 
 static const SyrConfig SYR_MAIN_CONFIG = {
-    .initializeOnStartup = true};
+    .bootupOnStartup = true};
 
 int main()
 {
@@ -10,7 +10,7 @@ int main()
 
     SyrResult result = SyrApplication_Initialize(&SYR_MAIN_CONFIG, &app);
 
-    if (result == SYR_RESULT_SUCCES)
+    if (result == SYR_RESULT_SUCCESS)
     {
         SYR_LOG("Satyr initialized succesfully");
     } else if (result == SYR_RESULT_VULKAN_FAILED)
@@ -18,5 +18,6 @@ int main()
         SYR_ERROR("Satyr Vulkan failed!");
     }
 
+    SyrApplication_Run(app);
     SyrApplication_Terminate(app);
 }
