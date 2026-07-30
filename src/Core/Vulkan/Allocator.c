@@ -87,6 +87,23 @@ SyrResult SyrAllocator_Initialize(const SyrConfig* config,
     return SYR_RESULT_SUCCESS;
 }
 
+SyrBufferAllocation* SyrAllocator_AllocateBuffer(const SyrBufferAllocParams params,
+    SyrAllocator* allocator)
+{
+    SyrBufferAllocation* allocation = NULL;
+
+    if (SyrBufferAllocation_Initialize(params,
+            allocator->vmaHandle,
+            &allocation)
+        == SYR_RESULT_RUNTIME_ERROR)
+    {
+        SYR_ERROR("Failed to allocate Buffer, size of: %u", (uint32_t)params.size);
+        return NULL;
+    }
+
+    return allocation;
+}
+
 VmaAllocator SyrAllocator_GetAllocatorHandle(SyrAllocator* allocator)
 {
     return allocator->vmaHandle;
