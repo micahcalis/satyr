@@ -5,7 +5,7 @@
 
 typedef struct SyrSyrinx
 {
-    SyrVulkInstance* instance;
+    SyrVulkInstance* vulkInstance;
     SyrDevice* device;
 } SyrSyrinx;
 
@@ -17,12 +17,12 @@ SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config)
 
 SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 {
-    if (SyrVulkInstance_Initialize(config, &syrinx->instance) == SYR_RESULT_VULKAN_FAILED)
+    if (SyrVulkInstance_Initialize(config, &syrinx->vulkInstance) == SYR_RESULT_VULKAN_FAILED)
     {
         return SYR_RESULT_VULKAN_FAILED;
     }
 
-    if (SyrDevice_Initialize(config, &syrinx->device) == SYR_RESULT_VULKAN_FAILED)
+    if (SyrDevice_Initialize(config, syrinx->vulkInstance, &syrinx->device) == SYR_RESULT_VULKAN_FAILED)
     {
         return SYR_RESULT_VULKAN_FAILED;
     }
@@ -33,7 +33,7 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
     SyrDevice_Destroy(syrinx->device);
-    SyrVulkInstance_Destroy(syrinx->instance);
+    SyrVulkInstance_Destroy(syrinx->vulkInstance);
 }
 
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx)

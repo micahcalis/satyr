@@ -217,6 +217,11 @@ SyrResult SyrVulkInstance_Initialize(const SyrConfig* config, SyrVulkInstance** 
     return SYR_RESULT_SUCCESS;
 }
 
+VkInstance SyrVulkInstance_GetInstanceHandle(SyrVulkInstance* vulkInstance)
+{
+    return vulkInstance->vkInstanceHandle;
+}
+
 void SyrVulkInstance_Destroy(SyrVulkInstance* vulkInstance)
 {
     if (vulkInstance == NULL)
