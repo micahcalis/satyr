@@ -46,7 +46,7 @@ static bool SyrDevice_PhysicalDeviceCompatible(VkPhysicalDevice physicalDevice)
 
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-    bool vulkanCompatible = deviceProperties.apiVersion >= VK_API_VERSION_1_4;
+    bool vulkanCompatible = deviceProperties.apiVersion >= SYR_VULKAN_VERSION;
 
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
@@ -212,20 +212,27 @@ SyrResult SyrDevice_Initialize(const SyrConfig* config,
 
     if (SyrDevice_PickPhysicalDevice(*device, vulkInstance) == SYR_RESULT_VULKAN_FAILED)
     {
-        free(*device);
+        SyrDevice_Destroy(*device);
+        *device = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
     if (SyrDevice_CreateLogicalDevice(*device) == SYR_RESULT_VULKAN_FAILED)
     {
-        free(*device);
+        SyrDevice_Destroy(*device);
+        *device = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
     return SYR_RESULT_SUCCESS;
 }
 
-VkDevice SyrDevice_GetDeviceHandle(const SyrDevice* device)
+VkPhysicalDevice SyrDevice_GetPhysicalDeviceHandle(const SyrDevice* device)
+{
+    return device->physicalDevice;
+}
+
+VkDevice SyrDevice_GetLogicalDeviceHandle(const SyrDevice* device)
 {
     return device->logicalDevice;
 }
@@ -240,6 +247,10 @@ void SyrDevice_Destroy(SyrDevice* device)
     if (device == NULL)
         return;
 
-    vkDestroyDevice(device->logicalDevice, NULL);
+    if (device->logicalDevice != VK_NULL_HANDLE)
+    {
+        vkDestroyDevice(device->logicalDevice, NULL);
+    }
+
     free(device);
 }

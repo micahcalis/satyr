@@ -2,11 +2,13 @@
 #include "SatyrCore.h"
 #include "Vulkan/Device.h"
 #include "Vulkan/VulkInstance.h"
+#include "Vulkan/Allocator.h"
 
 typedef struct SyrSyrinx
 {
     SyrVulkInstance* vulkInstance;
     SyrDevice* device;
+    SyrAllocator* allocator;
 } SyrSyrinx;
 
 SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config)
@@ -27,11 +29,17 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         return SYR_RESULT_VULKAN_FAILED;
     }
 
+    if (SyrAllocator_Initialize(config, syrinx->vulkInstance, syrinx->device, &syrinx->allocator) == SYR_RESULT_VULKAN_FAILED)
+    {
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
     return SYR_RESULT_SUCCESS;
 }
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
+    SyrAllocator_Destroy(syrinx->allocator);
     SyrDevice_Destroy(syrinx->device);
     SyrVulkInstance_Destroy(syrinx->vulkInstance);
 }

@@ -28,7 +28,7 @@ static SyrResult SyrVulkInstance_CreateVkHandle(SyrVulkInstance* vulkInstance)
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "Satyr Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_4;
+    appInfo.apiVersion = SYR_VULKAN_VERSION;
 
     VkInstanceCreateInfo createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -192,17 +192,23 @@ SyrResult SyrVulkInstance_Initialize(const SyrConfig* config, SyrVulkInstance** 
     {
         if (SyrVulkInstance_InitializeValidationLayers(*vulkInstance) == SYR_RESULT_VULKAN_FAILED)
         {
+            SyrVulkInstance_Destroy(*vulkInstance);
+            *vulkInstance = NULL;
             return SYR_RESULT_VULKAN_FAILED;
         }
     }
 
     if (SyrVulkInstance_InitializeExtensionLayers(*vulkInstance) == SYR_RESULT_VULKAN_FAILED)
     {
+        SyrVulkInstance_Destroy(*vulkInstance);
+        *vulkInstance = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
     if (SyrVulkInstance_CreateVkHandle(*vulkInstance) == SYR_RESULT_VULKAN_FAILED)
     {
+        SyrVulkInstance_Destroy(*vulkInstance);
+        *vulkInstance = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
@@ -210,6 +216,8 @@ SyrResult SyrVulkInstance_Initialize(const SyrConfig* config, SyrVulkInstance** 
     {
         if (SyrVulkInstance_SetupDebugMessenger(*vulkInstance) == SYR_RESULT_VULKAN_FAILED)
         {
+            SyrVulkInstance_Destroy(*vulkInstance);
+            *vulkInstance = NULL;
             return SYR_RESULT_VULKAN_FAILED;
         }
     }
@@ -227,7 +235,9 @@ void SyrVulkInstance_Destroy(SyrVulkInstance* vulkInstance)
     if (vulkInstance == NULL)
         return;
 
-    if (SYR_ENABLE_VALIDATION_LAYERS)
+    if (SYR_ENABLE_VALIDATION_LAYERS
+        && vulkInstance->vkInstanceHandle != VK_NULL_HANDLE
+        && vulkInstance->debugMessenger != VK_NULL_HANDLE)
     {
         PFN_vkDestroyDebugUtilsMessengerEXT destroyDebugMessengerFunc = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(vulkInstance->vkInstanceHandle, "vkDestroyDebugUtilsMessengerEXT");
         if (destroyDebugMessengerFunc != NULL)
@@ -236,7 +246,10 @@ void SyrVulkInstance_Destroy(SyrVulkInstance* vulkInstance)
         }
     }
 
-    vkDestroyInstance(vulkInstance->vkInstanceHandle, NULL);
+    if (vulkInstance->vkInstanceHandle != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(vulkInstance->vkInstanceHandle, NULL);
+    }
 
     free(vulkInstance);
 }
