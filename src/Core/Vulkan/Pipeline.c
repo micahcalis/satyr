@@ -1,4 +1,5 @@
 #include "Pipeline.h"
+#include "Core/Vulkan/ShaderModule.h"
 
 typedef struct SyrPipelineCache
 {
@@ -7,7 +8,13 @@ typedef struct SyrPipelineCache
     char* cachePath;
 } SyrPipelineCache;
 
-typedef struct SyrPipeline SyrPipeline;
+typedef struct SyrPipeline
+{
+    VkPipeline pipelineHandle;
+    VkPipelineLayout layoutHandle;
+    VkDevice device;
+    uint32_t kernelIndex;
+} SyrPipeline;
 
 static SyrResult SyrPipelineCache_TryLoadCacheFile(const char* cachePath,
     size_t* fileSize,
@@ -89,7 +96,7 @@ SyrResult SyrPipelineCache_Initialize(const SyrConfig* config,
 
 static SyrResult SyrPipelineCache_SaveCache(SyrPipelineCache* pipelineCache)
 {
-#ifdef SYR_DISABLE_VULKAN_PIPELINE_CACHE
+#ifdef SYR_ENABLE_VULKAN_PIPELINE_CACHE
     size_t cacheSize = 0;
 
     if (vkGetPipelineCacheData(pipelineCache->device,
@@ -153,4 +160,137 @@ void SyrPipelineCache_Destroy(SyrPipelineCache* pipelineCache)
     }
 
     free(pipelineCache);
+}
+
+static void SyrPipeline_GetEntryPointName(const uint32_t index, size_t maxLength, char* name)
+{
+    snprintf(name, maxLength, "SyrKernel_%u", index);
+}
+
+SyrResult SyrPipeline_CreateLayout(SyrPipeline* pipeline,
+    VkDescriptorSetLayout layout,
+    const char* shaderPath)
+{
+    VkPipelineLayoutCreateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    createInfo.setLayoutCount = 1;
+    createInfo.pSetLayouts = &layout;
+
+    if (vkCreatePipelineLayout(pipeline->device,
+            &createInfo,
+            NULL,
+            &pipeline->layoutHandle)
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Pipeline Layout for index: %u, path: %s", pipeline->kernelIndex, shaderPath);
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrPipeline_CreatePipeline(SyrPipeline* pipeline,
+    SyrPipelineCache* pipelineCache,
+    VkShaderModule shaderModule,
+    const char* entryPointName,
+    const char* shaderPath)
+{
+    VkPipelineShaderStageCreateInfo stageCreateInfo = {0};
+    stageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    stageCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    stageCreateInfo.module = shaderModule;
+    stageCreateInfo.pName = entryPointName;
+
+    VkComputePipelineCreateInfo pipelineCreateInfo = {0};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineCreateInfo.stage = stageCreateInfo;
+    pipelineCreateInfo.layout = pipeline->layoutHandle;
+
+    VkPipelineCache cacheHandle = VK_NULL_HANDLE;
+
+#ifdef SYR_ENABLE_VULKAN_PIPELINE_CACHE
+    cacheHandle = pipelineCache->cacheHandle;
+#endif
+
+    if (vkCreateComputePipelines(pipeline->device,
+            cacheHandle,
+            1,
+            &pipelineCreateInfo,
+            NULL,
+            &pipeline->pipelineHandle)
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Pipeline for index: %u, path: %s", pipeline->kernelIndex, shaderPath);
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrPipeline_Initialize(const char* shaderPath,
+    const uint32_t kernelIndex,
+    VkDescriptorSetLayout setLayout,
+    SyrDevice* device,
+    SyrPipelineCache* pipelineCache,
+    SyrPipeline** pipeline)
+{
+    *pipeline = SYR_NEW(*pipeline);
+    (*pipeline)->device = SyrDevice_GetLogicalDeviceHandle(device);
+    (*pipeline)->kernelIndex = kernelIndex;
+
+    char entryPointName[64];
+    SyrPipeline_GetEntryPointName(kernelIndex, sizeof(entryPointName), entryPointName);
+
+    SyrShaderModule* shaderModule = NULL;
+
+    if (SyrShaderModule_Initialize(shaderPath,
+            (*pipeline)->device,
+            &shaderModule)
+        != SYR_RESULT_SUCCESS)
+    {
+        SyrPipeline_Destroy(*pipeline);
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    if (SyrPipeline_CreateLayout(*pipeline,
+            setLayout,
+            shaderPath)
+        != SYR_RESULT_SUCCESS)
+    {
+        SyrPipeline_Destroy(*pipeline);
+        SyrShaderModule_Destroy(shaderModule);
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    if (SyrPipeline_CreatePipeline(*pipeline,
+            pipelineCache,
+            SyrShaderModule_GetModuleHandle(shaderModule),
+            entryPointName,
+            shaderPath))
+    {
+        SyrPipeline_Destroy(*pipeline);
+        SyrShaderModule_Destroy(shaderModule);
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    SyrShaderModule_Destroy(shaderModule);
+    return SYR_RESULT_SUCCESS;
+}
+
+void SyrPipeline_Destroy(SyrPipeline* pipeline)
+{
+    if (pipeline == NULL)
+        return;
+
+    if (pipeline->pipelineHandle != VK_NULL_HANDLE)
+    {
+        vkDestroyPipeline(pipeline->device, pipeline->pipelineHandle, NULL);
+    }
+
+    if (pipeline->layoutHandle != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineLayout(pipeline->device, pipeline->layoutHandle, NULL);
+    }
+
+    free(pipeline);
 }

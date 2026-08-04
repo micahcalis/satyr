@@ -29,3 +29,7 @@ typedef struct SyrConfig
 } SyrConfig;
 
 #define SYR_VULKAN_VERSION VK_API_VERSION_1_4
+
+// Implementation Settings (REMOVE ON RELEASE)
+
+#define SYR_ENABLE_VULKAN_PIPELINE_CACHE

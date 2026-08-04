@@ -2,7 +2,6 @@
 
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/Device.h"
-#include "Core/Vulkan/ShaderModule.h"
 
 typedef struct SyrPipelineCache SyrPipelineCache;
 typedef struct SyrPipeline SyrPipeline;
@@ -13,3 +12,11 @@ SyrResult SyrPipelineCache_Initialize(const SyrConfig* config,
 
 void SyrPipelineCache_Destroy(SyrPipelineCache* pipelineCache);
 
+SyrResult SyrPipeline_Initialize(const char* shaderPath,
+    const uint32_t kernelIndex,
+    VkDescriptorSetLayout setLayout,
+    SyrDevice* device,
+    SyrPipelineCache* pipelineCache,
+    SyrPipeline** pipeline);
+
+void SyrPipeline_Destroy(SyrPipeline* pipeline);

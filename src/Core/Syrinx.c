@@ -62,6 +62,20 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     // SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(8,
     //     syrinx->allocator);
 
+    // SyrPipeline* pipeline = NULL;
+
+    // if (SyrPipeline_Initialize("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
+    //         0,
+    //         SyrDescriptor_GetLayout(descriptor),
+    //         syrinx->device,
+    //         syrinx->pipelineCache,
+    //         &pipeline)
+    //     != SYR_RESULT_SUCCESS)
+    // {
+    //     return SYR_RESULT_VULKAN_FAILED;
+    // }
+
+    // SyrPipeline_Destroy(pipeline);
     // SyrDescriptor_Destroy(descriptor);
 
     // SyrShaderModule* shaderModule = NULL;

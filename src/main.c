@@ -1,5 +1,3 @@
-#define SYR_ENABLE_VULKAN_PIPELINE_CACHE
-#define SATYR_IMPLEMENTATION
 #include "Satyr.h"
 
 static const SyrConfig SYR_MAIN_CONFIG = {
