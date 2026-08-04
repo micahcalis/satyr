@@ -249,6 +249,11 @@ uint32_t SyrDevice_GetComputeFamilyIndex(SyrDevice* device)
     return device->computeQueueFamilyIndex;
 }
 
+void SyrDevice_WaitIdle(SyrDevice* device)
+{
+    vkDeviceWaitIdle(device->logicalDevice);
+}
+
 void SyrDevice_Destroy(SyrDevice* device)
 {
     if (device == NULL)

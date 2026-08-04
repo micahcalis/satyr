@@ -17,7 +17,7 @@ typedef struct SyrBufferAllocParams
 
 typedef struct SyrBufferAllocation
 {
-    VkBuffer buffer;
+    VkBuffer bufferHandle;
     VmaAllocation allocation;
     VmaAllocationInfo info;
     VmaAllocator allocator;

@@ -48,16 +48,15 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     }
 #endif
 
-    // SyrBufferAllocParams allocParams = {0};
-    // allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-    //     | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    // allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO;
-    // allocParams.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    SyrBufferAllocParams allocParams = {0};
+    allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+        | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO;
+    allocParams.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    allocParams.size = 128;
 
-    // SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams,
-    //     syrinx->allocator);
-
-    // SyrBufferAllocation_Destroy(bufferAllocation);
+    SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams,
+        syrinx->allocator);
 
     // SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(8,
     //     syrinx->allocator);
@@ -92,7 +91,18 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     SyrCommandBuffer* commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
 
+    SyrBarrier barrier = SyrBarrier_Initialize(SYR_RESOURCE_ACTION_UNDEFINED,
+        SYR_RESOURCE_ACTION_BUFFER_READ_WRITE,
+        bufferAllocation);
+
+    SyrCommandBuffer_Begin(commandBuffer);
+    SyrCommandBuffer_RecordBarrier(commandBuffer, barrier);
+    SyrCommandBuffer_End(commandBuffer);
+
+    SyrDevice_WaitIdle(syrinx->device);
+
     SyrCommandBuffer_Destroy(commandBuffer);
+    SyrBufferAllocation_Destroy(bufferAllocation);
 
     return SYR_RESULT_SUCCESS;
 }

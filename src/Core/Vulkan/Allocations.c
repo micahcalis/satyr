@@ -26,7 +26,7 @@ SyrResult SyrBufferAllocation_Initialize(const SyrBufferAllocParams params,
     if (vmaCreateBuffer(allocator,
             &bufferCreateInfo,
             &allocCreateInfo,
-            &(*allocation)->buffer,
+            &(*allocation)->bufferHandle,
             &(*allocation)->allocation,
             &(*allocation)->info)
         != VK_SUCCESS)
@@ -44,9 +44,9 @@ void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation)
     if (allocation == NULL)
         return;
 
-    if (allocation->buffer != VK_NULL_HANDLE)
+    if (allocation->bufferHandle != VK_NULL_HANDLE)
     {
-        vmaDestroyBuffer(allocation->allocator, allocation->buffer, allocation->allocation);
+        vmaDestroyBuffer(allocation->allocator, allocation->bufferHandle, allocation->allocation);
     }
 
     free(allocation);
