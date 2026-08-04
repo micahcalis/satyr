@@ -3,13 +3,14 @@
 #include "Vulkan/Device.h"
 #include "Vulkan/VulkInstance.h"
 #include "Vulkan/Allocator.h"
-#include "Vulkan/ShaderModule.h"
+#include "Vulkan/Pipeline.h"
 
 typedef struct SyrSyrinx
 {
     SyrVulkInstance* vulkInstance;
     SyrDevice* device;
     SyrAllocator* allocator;
+    SyrPipelineCache* pipelineCache;
 } SyrSyrinx;
 
 SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config)
@@ -34,6 +35,18 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     {
         return SYR_RESULT_VULKAN_FAILED;
     }
+
+    syrinx->pipelineCache = NULL;
+
+#ifdef SYR_ENABLE_VULKAN_PIPELINE_CACHE
+    if (config->pipelineCachePath != NULL)
+    {
+        if (SyrPipelineCache_Initialize(config, syrinx->device, &syrinx->pipelineCache) == SYR_RESULT_VULKAN_FAILED)
+        {
+            return SYR_RESULT_VULKAN_FAILED;
+        }
+    }
+#endif
 
     // SyrBufferAllocParams allocParams = {0};
     // allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
@@ -68,6 +81,7 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
+    SyrPipelineCache_Destroy(syrinx->pipelineCache);
     SyrAllocator_Destroy(syrinx->allocator);
     SyrDevice_Destroy(syrinx->device);
     SyrVulkInstance_Destroy(syrinx->vulkInstance);

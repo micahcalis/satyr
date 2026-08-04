@@ -1,8 +1,10 @@
-#include "Core/SatyrCore.h"
-#include "Core/Application.h"
+#define SYR_ENABLE_VULKAN_PIPELINE_CACHE
+#define SATYR_IMPLEMENTATION
+#include "Satyr.h"
 
 static const SyrConfig SYR_MAIN_CONFIG = {
-    .bootupOnStartup = true};
+    .bootupOnStartup = true,
+    .pipelineCachePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/pipeline_cache.bin"};
 
 int main()
 {

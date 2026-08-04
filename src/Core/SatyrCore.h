@@ -16,14 +16,16 @@
 typedef enum
 {
     SYR_RESULT_SUCCESS = 0,
-    SYR_RESULT_VULKAN_FAILED = 1,
-    SYR_RESULT_WAITING = 2,
-    SYR_RESULT_RUNTIME_ERROR = 3
+    SYR_RESULT_FAILED = 1,
+    SYR_RESULT_VULKAN_FAILED = 2,
+    SYR_RESULT_WAITING = 3,
+    SYR_RESULT_RUNTIME_ERROR = 4
 } SyrResult;
 
 typedef struct SyrConfig
 {
     bool bootupOnStartup;
+    char* pipelineCachePath;
 } SyrConfig;
 
 #define SYR_VULKAN_VERSION VK_API_VERSION_1_4
