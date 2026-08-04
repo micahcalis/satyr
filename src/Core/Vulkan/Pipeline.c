@@ -249,6 +249,7 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
         != SYR_RESULT_SUCCESS)
     {
         SyrPipeline_Destroy(*pipeline);
+        *pipeline = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
@@ -259,6 +260,7 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
     {
         SyrPipeline_Destroy(*pipeline);
         SyrShaderModule_Destroy(shaderModule);
+        *pipeline = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 
@@ -270,6 +272,7 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
     {
         SyrPipeline_Destroy(*pipeline);
         SyrShaderModule_Destroy(shaderModule);
+        *pipeline = NULL;
         return SYR_RESULT_VULKAN_FAILED;
     }
 

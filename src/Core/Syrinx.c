@@ -90,6 +90,10 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     // SyrShaderModule_Destroy(shaderModule);
 
+    SyrCommandBuffer* commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
+
+    SyrCommandBuffer_Destroy(commandBuffer);
+
     return SYR_RESULT_SUCCESS;
 }
 

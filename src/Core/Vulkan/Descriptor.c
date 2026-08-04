@@ -26,6 +26,8 @@ SyrResult SyrDescriptor_Initialize(VkDescriptorSetLayout layout,
     if (ssboCount > SYR_DESCRIPTOR_SSBO_LIMIT)
     {
         SYR_ERROR("SSBO Count is higher than max limit: 32!");
+        SyrDescriptor_Destroy(*descriptor);
+        *descriptor = NULL;
         return SYR_RESULT_RUNTIME_ERROR;
     }
 
