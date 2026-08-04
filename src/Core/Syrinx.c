@@ -3,6 +3,7 @@
 #include "Vulkan/Device.h"
 #include "Vulkan/VulkInstance.h"
 #include "Vulkan/Allocator.h"
+#include "Vulkan/ShaderModule.h"
 
 typedef struct SyrSyrinx
 {
@@ -49,6 +50,18 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     //     syrinx->allocator);
 
     // SyrDescriptor_Destroy(descriptor);
+
+    // SyrShaderModule* shaderModule = NULL;
+
+    // if (SyrShaderModule_Initialize("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
+    //         SyrDevice_GetLogicalDeviceHandle(syrinx->device),
+    //         &shaderModule)
+    //     != SYR_RESULT_SUCCESS)
+    // {
+    //     return SYR_RESULT_RUNTIME_ERROR;
+    // }
+
+    // SyrShaderModule_Destroy(shaderModule);
 
     return SYR_RESULT_SUCCESS;
 }
