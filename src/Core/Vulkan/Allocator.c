@@ -7,7 +7,7 @@ typedef struct SyrAllocator
     VkDescriptorPool descriptorPool;
 } SyrAllocator;
 
-SyrResult SyrAllocator_CreateAllocator(SyrAllocator* allocator,
+static SyrResult SyrAllocator_CreateAllocator(SyrAllocator* allocator,
     SyrVulkInstance* vulkInstance,
     SyrDevice* device)
 {
@@ -34,7 +34,7 @@ static const VkDescriptorPoolSize SYR_DESCRIPTOR_POOL_SIZES[] = {
     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, SYR_DESCRIPTOR_COUNT},
     {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, SYR_DESCRIPTOR_COUNT}};
 
-SyrResult SyrAllocator_CreateDescriptorPool(SyrAllocator* allocator)
+static SyrResult SyrAllocator_CreateDescriptorPool(SyrAllocator* allocator)
 {
     VkDescriptorPoolCreateInfo createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -102,6 +102,107 @@ SyrBufferAllocation* SyrAllocator_AllocateBuffer(const SyrBufferAllocParams para
     }
 
     return allocation;
+}
+
+static SyrResult SyrAllocator_CreateDescriptorLayout(const uint32_t ssboCount,
+    SyrAllocator* allocator,
+    VkDescriptorSetLayout* layout)
+{
+    if (ssboCount >= SYR_DESCRIPTOR_SSBO_LIMIT)
+    {
+        SYR_ERROR("SSBO Count is higher than max limit: 32!");
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    VkDescriptorSetLayoutBinding bindings[SYR_DESCRIPTOR_SSBO_LIMIT + 1];
+
+    for (uint32_t i = 0; i < ssboCount + 1; i++)
+    {
+        // First binding is reserved for shader settings uniform buffer
+        bindings[i] = (VkDescriptorSetLayoutBinding){
+            .binding = i,
+            .descriptorType = (i == 0) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                                       : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+            .pImmutableSamplers = NULL};
+    }
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = ssboCount + 1;
+    layoutInfo.pBindings = bindings;
+
+    if (vkCreateDescriptorSetLayout(allocator->logicalDevice, &layoutInfo, NULL, &(*layout))
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Descriptor Set Layout!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+static SyrResult SyrAllocator_CreateDescriptorSet(VkDescriptorSetLayout layout,
+    SyrAllocator* allocator,
+    VkDescriptorSet* set)
+{
+    VkDescriptorSetAllocateInfo createInfo = {0};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    createInfo.descriptorPool = allocator->descriptorPool;
+    createInfo.descriptorSetCount = 1;
+    createInfo.pSetLayouts = &layout;
+
+    if (vkAllocateDescriptorSets(allocator->logicalDevice,
+            &createInfo,
+            &(*set))
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Descriptor Set!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrDescriptor* SyrAllocator_AllocateDescriptor(const uint32_t ssboCount,
+    SyrAllocator* allocator)
+{
+    VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+
+    if (SyrAllocator_CreateDescriptorLayout(ssboCount,
+            allocator,
+            &layout)
+        != SYR_RESULT_SUCCESS)
+    {
+        return NULL;
+    }
+
+    VkDescriptorSet set = VK_NULL_HANDLE;
+
+    if (SyrAllocator_CreateDescriptorSet(layout,
+            allocator,
+            &set)
+        != SYR_RESULT_SUCCESS)
+    {
+        return NULL;
+    }
+
+    SyrDescriptor* descriptor = NULL;
+
+    if (SyrDescriptor_Initialize(layout,
+            set,
+            ssboCount,
+            allocator->logicalDevice,
+            allocator->descriptorPool,
+            &descriptor)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to allocate Descriptor, SBBO count of: %u", (uint32_t)ssboCount);
+        return NULL;
+    }
+
+    return descriptor;
 }
 
 VmaAllocator SyrAllocator_GetAllocatorHandle(SyrAllocator* allocator)

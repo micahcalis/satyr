@@ -34,6 +34,22 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         return SYR_RESULT_VULKAN_FAILED;
     }
 
+    // SyrBufferAllocParams allocParams = {0};
+    // allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+    //     | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    // allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO;
+    // allocParams.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    // SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams,
+    //     syrinx->allocator);
+
+    // SyrBufferAllocation_Destroy(bufferAllocation);
+
+    // SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(8,
+    //     syrinx->allocator);
+
+    // SyrDescriptor_Destroy(descriptor);
+
     return SYR_RESULT_SUCCESS;
 }
 

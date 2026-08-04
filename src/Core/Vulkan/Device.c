@@ -40,6 +40,9 @@ static uint32_t GetComputeQueueFamilyIndex(VkPhysicalDevice physicalDevice)
     return computeQueueFamilyIndex;
 }
 
+#define SYR_MIN_STORAGE_BUFFERS 32
+#define SYR_MIN_DESC_SETS 2
+
 static bool SyrDevice_PhysicalDeviceCompatible(VkPhysicalDevice physicalDevice)
 {
     bool hasComputeQueue = GetComputeQueueFamilyIndex(physicalDevice) != SYR_INVALID_COMPUTE_QUEUE;
@@ -48,13 +51,17 @@ static bool SyrDevice_PhysicalDeviceCompatible(VkPhysicalDevice physicalDevice)
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
     bool vulkanCompatible = deviceProperties.apiVersion >= SYR_VULKAN_VERSION;
 
+    bool ssboCompatible = deviceProperties.limits.maxDescriptorSetStorageBuffers >= SYR_MIN_STORAGE_BUFFERS
+        && deviceProperties.limits.maxPerStageDescriptorStorageBuffers >= SYR_MIN_STORAGE_BUFFERS
+        && deviceProperties.limits.maxBoundDescriptorSets >= SYR_MIN_DESC_SETS;
+
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
 
     bool hasSatyrFeatures = deviceFeatures.shaderFloat64
         && deviceFeatures.shaderInt64;
 
-    return hasComputeQueue && vulkanCompatible && hasSatyrFeatures;
+    return hasComputeQueue && vulkanCompatible && ssboCompatible && hasSatyrFeatures;
 }
 
 static uint32_t SyrDevice_GetPhysicalDeviceScore(VkPhysicalDevice physicalDevice)
