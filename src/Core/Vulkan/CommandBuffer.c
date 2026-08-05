@@ -1,0 +1,103 @@
+#include "CommandBuffer.h"
+
+typedef struct SyrCommandBuffer
+{
+    VkCommandBuffer commandBufferHandle;
+    VkCommandPool commandPoolHandle;
+    VkDevice device;
+    VkQueue computeQueue;
+} SyrCommandBuffer;
+
+SyrResult SyrCommandBuffer_Initialize(VkCommandBuffer commandBufferHandle,
+    VkCommandPool pool,
+    VkDevice device,
+    VkQueue computeQueue,
+    SyrCommandBuffer** commandBuffer)
+{
+    *commandBuffer = SYR_NEW(*commandBuffer);
+    (*commandBuffer)->commandBufferHandle = commandBufferHandle;
+    (*commandBuffer)->commandPoolHandle = pool;
+    (*commandBuffer)->device = device;
+    (*commandBuffer)->computeQueue = computeQueue;
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrCommandBuffer_Begin(SyrCommandBuffer* commandBuffer)
+{
+    VkCommandBufferBeginInfo beginInfo = {0};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    if (vkBeginCommandBuffer(commandBuffer->commandBufferHandle, &beginInfo) != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to begin Command Buffer!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
+    SyrTimelineSemaphore* timelineSemaphore,
+    SyrTimelineTicket* timelineTicket)
+{
+    if (vkEndCommandBuffer(commandBuffer->commandBufferHandle) != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to end Command Buffer!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    VkTimelineSemaphoreSubmitInfo timelineInfo = SyrTimelineSemaphore_GetSubmitInfo(timelineTicket);
+    VkSemaphore semaphoreHandle = SyrTimelineSemaphore_GetSemaphoreHandle(timelineSemaphore);
+
+    VkSubmitInfo submitInfo = {0};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer->commandBufferHandle;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &semaphoreHandle;
+    submitInfo.pNext = &timelineInfo;
+
+    if (vkQueueSubmit(commandBuffer->computeQueue,
+            1,
+            &submitInfo,
+            NULL)
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to submit Command Buffer!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+void SyrCommandBuffer_RecordBarrier(SyrCommandBuffer* commandBuffer, const SyrBarrier barrier)
+{
+    vkCmdPipelineBarrier(commandBuffer->commandBufferHandle,
+        barrier.sourceStage,
+        barrier.destinationStage,
+        0,
+        0,
+        NULL,
+        1,
+        &barrier.barrierHandle,
+        0,
+        NULL);
+}
+
+void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer)
+{
+    if (commandBuffer == NULL)
+        return;
+
+    if (commandBuffer->commandBufferHandle != VK_NULL_HANDLE)
+    {
+        vkFreeCommandBuffers(commandBuffer->device,
+            commandBuffer->commandPoolHandle,
+            1,
+            &commandBuffer->commandBufferHandle);
+    }
+
+    free(commandBuffer);
+}
