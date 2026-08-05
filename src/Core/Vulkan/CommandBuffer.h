@@ -16,7 +16,7 @@ SyrResult SyrCommandBuffer_Begin(SyrCommandBuffer* commandBuffer);
 
 SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
     SyrTimelineSemaphore* timelineSemaphore,
-    SyrTimelineTicket* timelineTicket);
+    const SyrTimelineTicket* timelineTicket);
 
 void SyrCommandBuffer_RecordBarrier(SyrCommandBuffer* commandBuffer, const SyrBarrier barrier);
 void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer);

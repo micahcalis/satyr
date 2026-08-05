@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "vulkan/vulkan.h"
+#include "System/Utilities/DynamicArray.h"
 
 #define SYR_LOG(format, ...) printf("[Satyr] " format "\n", ##__VA_ARGS__)
 #define SYR_ERROR(format, ...) fprintf(stderr, "[Satyr Error] " format "\n", ##__VA_ARGS__)

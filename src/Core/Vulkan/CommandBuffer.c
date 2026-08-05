@@ -40,7 +40,7 @@ SyrResult SyrCommandBuffer_Begin(SyrCommandBuffer* commandBuffer)
 
 SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
     SyrTimelineSemaphore* timelineSemaphore,
-    SyrTimelineTicket* timelineTicket)
+    const SyrTimelineTicket* timelineTicket)
 {
     if (vkEndCommandBuffer(commandBuffer->commandBufferHandle) != VK_SUCCESS)
     {

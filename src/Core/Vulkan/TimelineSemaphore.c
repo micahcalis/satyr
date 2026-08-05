@@ -86,7 +86,7 @@ VkSemaphore SyrTimelineSemaphore_GetSemaphoreHandle(SyrTimelineSemaphore* timeli
     return timelineSemaphore->semaphoreHandle;
 }
 
-VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(SyrTimelineTicket* timelineTicket)
+VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(const SyrTimelineTicket* timelineTicket)
 {
     VkTimelineSemaphoreSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;

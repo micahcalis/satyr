@@ -43,6 +43,15 @@ typedef struct SyrListHeader
             ? ((l) = SyrList_GrowImplementation((l), (n), sizeof(*(l)))) \
             : 0)
 
+#define SyrList_Clear(l)                  \
+    do                                    \
+    {                                     \
+        if (l)                            \
+        {                                 \
+            SyrList_Header(l)->count = 0; \
+        }                                 \
+    } while (0)
+
 static inline void* SyrList_SetCapacity(void* list, size_t new_cap, size_t item_size)
 {
     if (new_cap == 0)
