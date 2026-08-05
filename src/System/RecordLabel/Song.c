@@ -1,0 +1,61 @@
+#include "Song.h"
+
+typedef struct SyrSong
+{
+    SyrList(SyrInstrument*) instruments;
+    SyrMelody* melody;
+} SyrSong;
+
+SyrResult SyrSong_Initialize(SyrMelody* melody,
+    SyrSong** song)
+{
+    (*song) = SYR_NEW(*song);
+    (*song)->instruments = NULL;
+    (*song)->melody = melody;
+
+    return SYR_RESULT_SUCCESS;
+}
+
+void SyrSong_AddInstruments(SyrSong* song, SyrInstrument** instruments, size_t count)
+{
+    if (song == NULL || instruments == NULL || count == 0)
+        return;
+
+    uint32_t newCount = SyrList_Count(song->instruments) + count;
+    if (newCount > SYR_MAX_INSTRUMENTS)
+    {
+        SYR_ERROR("Instrument Count overflow: %d (max: %u)", newCount, SYR_MAX_INSTRUMENTS);
+        return;
+    }
+
+    SyrList_PushRange(song->instruments, instruments, count);
+}
+
+void SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
+{
+    // melody stuff that has to be figured out
+}
+
+void SyrSong_Destroy(SyrSong* song)
+{
+    if (song == NULL)
+        return;
+
+    if (song->melody != NULL)
+    {
+        SyrMelody_Destroy(song->melody);
+    }
+
+    if (song->instruments != NULL)
+    {
+        for (size_t i = 0; i < SyrList_Count(song->instruments); i++)
+        {
+            SyrInstrument_Destroy(song->instruments[i]);
+        }
+
+        SyrList_Free(song->instruments);
+    }
+
+    free(song);
+}
+

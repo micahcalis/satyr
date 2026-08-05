@@ -1,5 +1,6 @@
 #pragma once
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct SyrListHeader
 {
@@ -36,6 +37,18 @@ typedef struct SyrListHeader
     {                                              \
         SyrList_MayGrow(l, 1);                     \
         (l)[SyrList_Header(l)->count++] = (value); \
+    } while (0)
+
+#define SyrList_PushRange(l, items, n)                                               \
+    do                                                                               \
+    {                                                                                \
+        size_t __syr_n = (n);                                                        \
+        if ((items) != NULL && __syr_n > 0)                                          \
+        {                                                                            \
+            SyrList_MayGrow((l), __syr_n);                                           \
+            memcpy(&(l)[SyrList_Header(l)->count], (items), sizeof(*(l)) * __syr_n); \
+            SyrList_Header(l)->count += __syr_n;                                     \
+        }                                                                            \
     } while (0)
 
 #define SyrList_MayGrow(l, n)                                            \

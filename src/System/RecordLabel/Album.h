@@ -2,8 +2,8 @@
 
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/CommandBuffer.h"
-#include "System/Song/Song.h"
-#include "System/Song/Producer.h"
+#include "System/RecordLabel/Song.h"
+#include "System/RecordLabel/Producer.h"
 
 typedef struct SyrAlbum SyrAlbum;
 
