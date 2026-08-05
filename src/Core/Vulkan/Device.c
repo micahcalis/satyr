@@ -177,15 +177,26 @@ static SyrResult SyrDevice_CreateLogicalDevice(SyrDevice* device)
     queueCreateInfo.queueCount = 1;
     queueCreateInfo.pQueuePriorities = &SYR_MAIN_QUEUE_FAMILY_PRIO;
 
+    VkPhysicalDeviceVulkan12Features vulkan12Features = {0};
+    vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    vulkan12Features.pNext = NULL;
+    vulkan12Features.timelineSemaphore = VK_TRUE;
+
     VkPhysicalDeviceFeatures enabledFeatures = {0};
     enabledFeatures.shaderFloat64 = VK_TRUE;
     enabledFeatures.shaderInt64 = VK_TRUE;
 
+    VkPhysicalDeviceFeatures2 deviceFeatures2 = {0};
+    deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures2.pNext = &vulkan12Features;
+    deviceFeatures2.features = enabledFeatures;
+
     VkDeviceCreateInfo deviceCreateInfo = {0};
     deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    deviceCreateInfo.pNext = &deviceFeatures2;
     deviceCreateInfo.queueCreateInfoCount = 1;
     deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-    deviceCreateInfo.pEnabledFeatures = &enabledFeatures;
+    deviceCreateInfo.pEnabledFeatures = NULL;
 
     if (vkCreateDevice(device->physicalDevice,
             &deviceCreateInfo,
@@ -247,6 +258,11 @@ VkDevice SyrDevice_GetLogicalDeviceHandle(const SyrDevice* device)
 uint32_t SyrDevice_GetComputeFamilyIndex(SyrDevice* device)
 {
     return device->computeQueueFamilyIndex;
+}
+
+VkQueue SyrDevice_GetComputeQueue(SyrDevice* device)
+{
+    return device->computeQueue;
 }
 
 void SyrDevice_WaitIdle(SyrDevice* device)

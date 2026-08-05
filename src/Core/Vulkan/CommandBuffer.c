@@ -5,17 +5,20 @@ typedef struct SyrCommandBuffer
     VkCommandBuffer commandBufferHandle;
     VkCommandPool commandPoolHandle;
     VkDevice device;
+    VkQueue computeQueue;
 } SyrCommandBuffer;
 
 SyrResult SyrCommandBuffer_Initialize(VkCommandBuffer commandBufferHandle,
     VkCommandPool pool,
     VkDevice device,
+    VkQueue computeQueue,
     SyrCommandBuffer** commandBuffer)
 {
     *commandBuffer = SYR_NEW(*commandBuffer);
     (*commandBuffer)->commandBufferHandle = commandBufferHandle;
     (*commandBuffer)->commandPoolHandle = pool;
     (*commandBuffer)->device = device;
+    (*commandBuffer)->computeQueue = computeQueue;
 
     return SYR_RESULT_SUCCESS;
 }
@@ -35,7 +38,9 @@ SyrResult SyrCommandBuffer_Begin(SyrCommandBuffer* commandBuffer)
     return SYR_RESULT_SUCCESS;
 }
 
-SyrResult SyrCommandBuffer_End(SyrCommandBuffer* commandBuffer)
+SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
+    SyrTimelineSemaphore* timelineSemaphore,
+    SyrTimelineTicket* timelineTicket)
 {
     if (vkEndCommandBuffer(commandBuffer->commandBufferHandle) != VK_SUCCESS)
     {
@@ -43,7 +48,26 @@ SyrResult SyrCommandBuffer_End(SyrCommandBuffer* commandBuffer)
         return SYR_RESULT_VULKAN_FAILED;
     }
 
-    // TODO: Timeline sempahores submitting
+    VkTimelineSemaphoreSubmitInfo timelineInfo = SyrTimelineSemaphore_GetSubmitInfo(timelineTicket);
+    VkSemaphore semaphoreHandle = SyrTimelineSemaphore_GetSemaphoreHandle(timelineSemaphore);
+
+    VkSubmitInfo submitInfo = {0};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer->commandBufferHandle;
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = &semaphoreHandle;
+    submitInfo.pNext = &timelineInfo;
+
+    if (vkQueueSubmit(commandBuffer->computeQueue,
+            1,
+            &submitInfo,
+            NULL)
+        != VK_SUCCESS)
+    {
+        SYR_ERROR("Failed to submit Command Buffer!");
+        return SYR_RESULT_VULKAN_FAILED;
+    }
 
     return SYR_RESULT_SUCCESS;
 }

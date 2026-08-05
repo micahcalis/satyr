@@ -12,5 +12,6 @@ SyrResult SyrDevice_Initialize(const SyrConfig* config,
 VkPhysicalDevice SyrDevice_GetPhysicalDeviceHandle(const SyrDevice* device);
 VkDevice SyrDevice_GetLogicalDeviceHandle(const SyrDevice* device);
 uint32_t SyrDevice_GetComputeFamilyIndex(SyrDevice* device);
+VkQueue SyrDevice_GetComputeQueue(SyrDevice* device);
 void SyrDevice_WaitIdle(SyrDevice* device);
 void SyrDevice_Destroy(SyrDevice* device);

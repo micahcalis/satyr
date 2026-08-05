@@ -14,6 +14,7 @@
 #include "Core/Vulkan/ShaderModule.h"
 #include "Core/Vulkan/VulkInstance.h"
 #include "Core/Vulkan/CommandBuffer.h"
+#include "Core/Vulkan/TimelineSemaphore.h"
 
 #ifdef SATYR_IMPLEMENTATION
 
@@ -30,5 +31,6 @@
     #include "Core/Vulkan/ShaderModule.c"
     #include "Core/Vulkan/VulkInstance.c"
     #include "Core/Vulkan/CommandBuffer.c"
+    #include "Core/Vulkan/TimelineSemaphore.c"
 
 #endif // SATYR_IMPLEMENTATION

@@ -4,6 +4,7 @@ typedef struct SyrAllocator
 {
     VmaAllocator vmaHandle;
     VkDevice device;
+    VkQueue computeQueue;
     VkDescriptorPool descriptorPool;
     VkCommandPool commandPool;
 } SyrAllocator;
@@ -91,6 +92,7 @@ SyrResult SyrAllocator_Initialize(const SyrConfig* config,
 
     *allocator = SYR_NEW(*allocator);
     (*allocator)->device = SyrDevice_GetLogicalDeviceHandle(device);
+    (*allocator)->computeQueue = SyrDevice_GetComputeQueue(device);
 
     if (SyrAllocator_CreateAllocator(*allocator, vulkInstance, device) == SYR_RESULT_VULKAN_FAILED)
     {
@@ -258,6 +260,7 @@ SyrCommandBuffer* SyrAllocator_AllocateCommandBuffer(SyrAllocator* allocator)
     if (SyrCommandBuffer_Initialize(commandBufferHandle,
             allocator->commandPool,
             allocator->device,
+            allocator->computeQueue,
             &commandBuffer)
         != SYR_RESULT_SUCCESS)
     {

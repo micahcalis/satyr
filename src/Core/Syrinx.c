@@ -4,6 +4,7 @@
 #include "Vulkan/VulkInstance.h"
 #include "Vulkan/Allocator.h"
 #include "Vulkan/Pipeline.h"
+#include "Vulkan/TimelineSemaphore.h"
 
 typedef struct SyrSyrinx
 {
@@ -89,6 +90,10 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     // SyrShaderModule_Destroy(shaderModule);
 
+    SyrTimelineSemaphore* timelineSemaphore = NULL;
+    SyrTimelineSemaphore_Initialize(syrinx->device, &timelineSemaphore);
+    SyrTimelineTicket ticket = SyrTimelineSemaphore_AssignTicket(timelineSemaphore, "testTicket");
+
     SyrCommandBuffer* commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
 
     SyrBarrier barrier = SyrBarrier_Initialize(SYR_RESOURCE_ACTION_UNDEFINED,
@@ -97,12 +102,21 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     SyrCommandBuffer_Begin(commandBuffer);
     SyrCommandBuffer_RecordBarrier(commandBuffer, barrier);
-    SyrCommandBuffer_End(commandBuffer);
+    SyrCommandBuffer_EndSubmit(commandBuffer, timelineSemaphore, &ticket);
 
     SyrDevice_WaitIdle(syrinx->device);
 
     SyrCommandBuffer_Destroy(commandBuffer);
     SyrBufferAllocation_Destroy(bufferAllocation);
+
+    SyrTimelineSemaphore_UpdateSemaphoreCounter(timelineSemaphore);
+
+    bool isComplete = SyrTimelineSemaphore_IsTicketComplete(timelineSemaphore, &ticket);
+    SYR_LOG("Timeline Ticket (%s) Status: %d",
+        ticket.name,
+        (int)isComplete);
+
+    SyrTimelineSemaphore_Destroy(timelineSemaphore);
 
     return SYR_RESULT_SUCCESS;
 }
