@@ -118,7 +118,102 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     // SyrTimelineSemaphore_Destroy(timelineSemaphore);
 
+    SyrChordConfig chordConfig = {.name = "testChord",
+        .notesData = {
+            .name = "testNotesData",
+            .size = sizeof(float)},
+        .instrumentCount = 1,
+        .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
+        .kernelIndex = 0};
+
+    SyrChord* chord = SyrSyrinx_CreateChord(syrinx, &chordConfig);
+    float notesTest = 23234.f;
+    SyrChord_WriteNotes(chord, &notesTest, sizeof(float), 0);
+
+    SyrChord_Destroy(chord);
+
     return SYR_RESULT_SUCCESS;
+}
+
+SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
+    const SyrNotesData notesData)
+{
+    SyrBufferAllocParams allocParams = {0};
+    allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    allocParams.usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    allocParams.size = notesData.size;
+
+    SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams, syrinx->allocator);
+
+    SyrNoteBuffer* noteBuffer = NULL;
+
+    if (SyrNoteBuffer_Initialize(notesData,
+            bufferAllocation,
+            &noteBuffer)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Syrinx failed to create Note Buffer: %s", notesData.name);
+        return NULL;
+    }
+
+    return noteBuffer;
+}
+
+SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
+    const SyrChordConfig* config)
+{
+    SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(config->instrumentCount,
+        syrinx->allocator);
+
+    if (descriptor == NULL)
+    {
+        SYR_ERROR("Failed to create Chord Descriptor: %s!", config->name);
+        return NULL;
+    }
+
+    SyrPipeline* pipeline = NULL;
+
+    if (SyrPipeline_Initialize(config->shaderPath,
+            config->kernelIndex,
+            SyrDescriptor_GetLayout(descriptor),
+            syrinx->device,
+            syrinx->pipelineCache,
+            &pipeline)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Chord Pipeline: %s!", config->name);
+        SyrDescriptor_Destroy(descriptor);
+        return NULL;
+    }
+
+    SyrNoteBuffer* noteBuffer = SyrSyrinx_CreateNoteBuffer(syrinx, config->notesData);
+
+    if (noteBuffer == NULL)
+    {
+        SYR_ERROR("Failed to create Chord Note Buffer: %s!", config->name);
+        SyrPipeline_Destroy(pipeline);
+        SyrDescriptor_Destroy(descriptor);
+        return NULL;
+    }
+
+    SyrChord* chord = NULL;
+
+    if (SyrChord_Initialize(pipeline,
+            descriptor,
+            noteBuffer,
+            config->name,
+            &chord)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Chord: %s!", config->name);
+        SyrNoteBuffer_Destroy(noteBuffer);
+        SyrPipeline_Destroy(pipeline);
+        SyrDescriptor_Destroy(descriptor);
+        return NULL;
+    }
+
+    return chord;
 }
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)

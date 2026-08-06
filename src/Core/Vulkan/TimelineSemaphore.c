@@ -59,7 +59,7 @@ SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timeli
 
     if (name != NULL)
     {
-        strncpy_s(ticket.name, sizeof(ticket.name), name, sizeof(ticket.name) - 1);
+        SYR_STR_COPY(ticket.name, name);
         ticket.name[sizeof(ticket.name) - 1] = '\0';
     } else
     {

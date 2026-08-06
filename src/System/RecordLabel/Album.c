@@ -20,7 +20,7 @@ SyrResult SyrAlbum_Initialize(SyrCommandBuffer* commandBuffer,
 
 void SyrAlbum_BeginRecording(SyrAlbum* album, const char name[32])
 {
-    strncpy_s(album->name, sizeof(album->name), name, sizeof(album->name) - 1);
+    SYR_STR_COPY(album->name, name);
     SyrCommandBuffer_Begin(album->commandBuffer);
 }
 

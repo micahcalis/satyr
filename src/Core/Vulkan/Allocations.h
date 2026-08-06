@@ -27,4 +27,9 @@ SyrResult SyrBufferAllocation_Initialize(const SyrBufferAllocParams params,
     VmaAllocator allocator,
     SyrBufferAllocation** allocation);
 
+SyrResult SyrBufferAllocation_Upload(SyrBufferAllocation* bufferAllocation,
+    const void* data,
+    const size_t size,
+    const size_t offset);
+
 void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation);

@@ -13,6 +13,7 @@
 #define SYR_ALLOC(type) calloc(1, sizeof(type))
 #define SYR_NEW(ptr) calloc(1, sizeof(*(ptr)))
 #define SYR_ALLOC_ARRAY(type, count) calloc((count), sizeof(type))
+#define SYR_STR_COPY(dest, src) strncpy_s(dest, sizeof(dest), src, sizeof(dest) - 1)
 
 typedef enum
 {

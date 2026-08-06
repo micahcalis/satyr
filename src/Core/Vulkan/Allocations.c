@@ -39,6 +39,33 @@ SyrResult SyrBufferAllocation_Initialize(const SyrBufferAllocParams params,
     return SYR_RESULT_SUCCESS;
 }
 
+SyrResult SyrBufferAllocation_Upload(SyrBufferAllocation* bufferAllocation,
+    const void* data,
+    const size_t size,
+    const size_t offset)
+{
+    if (offset > bufferAllocation->info.size || size > bufferAllocation->info.size - offset)
+    {
+        SYR_ERROR("Buffer Upload Overflow: size %zu + offset %zu > allocation size %zu",
+            size,
+            offset,
+            bufferAllocation->info.size);
+
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    if (bufferAllocation->info.pMappedData == NULL)
+    {
+        SYR_ERROR("Cannot directly upload to unmapped GPU memory!");
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    void* destination = (char*)bufferAllocation->info.pMappedData + offset;
+    memcpy(destination, data, size);
+
+    return SYR_RESULT_SUCCESS;
+}
+
 void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation)
 {
     if (allocation == NULL)

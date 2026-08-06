@@ -15,7 +15,7 @@ SyrResult SyrProducer_Initialize(SyrTimelineSemaphore* timelineSemaphore,
     (*producer)->timelineSemaphore = timelineSemaphore;
     (*producer)->timelineTicket.id = SYR_INVALID_TICKET_ID;
     (*producer)->timelineTicket.name[0] = '\0';
-    strncpy_s((*producer)->name, sizeof((*producer)->name), name, sizeof((*producer)->name) - 1);
+    SYR_STR_COPY((*producer)->name, name);
 
     return SYR_RESULT_SUCCESS;
 }
