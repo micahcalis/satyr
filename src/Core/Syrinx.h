@@ -3,6 +3,7 @@
 #include "SatyrCore.h"
 #include "System/RecordLabel/Notes.h"
 #include "System/RecordLabel/Chord.h"
+#include "System/RecordLabel/Melody.h"
 
 typedef struct SyrSyrinx SyrSyrinx;
 
@@ -14,5 +15,8 @@ SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
 
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config);
+
+SyrMelody* SyrSyrinx_CreateMelody(SyrSyrinx* syrinx,
+    const SyrMelodyConfig* config);
 
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);

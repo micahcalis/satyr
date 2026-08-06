@@ -46,6 +46,11 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
     return SYR_RESULT_SUCCESS;
 }
 
+const char* SyrChord_GetName(SyrChord* chord)
+{
+    return chord->name;
+}
+
 void SyrChord_Destroy(SyrChord* chord)
 {
     if (chord == NULL)

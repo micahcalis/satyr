@@ -5,6 +5,7 @@
 #include "Vulkan/Allocator.h"
 #include "Vulkan/Pipeline.h"
 #include "Vulkan/TimelineSemaphore.h"
+#include "System/RecordLabel//Instrument.h"
 
 typedef struct SyrSyrinx
 {
@@ -49,88 +50,33 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     }
 #endif
 
-    // SyrBufferAllocParams allocParams = {0};
-    // allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-    //     | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    // allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO;
-    // allocParams.usageFlags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    // allocParams.size = 128;
-
-    // SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams,
-    //     syrinx->allocator);
-
-    // SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(8,
-    //     syrinx->allocator);
-
-    // SyrPipeline* pipeline = NULL;
-
-    // if (SyrPipeline_Initialize("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
-    //         0,
-    //         SyrDescriptor_GetLayout(descriptor),
-    //         syrinx->device,
-    //         syrinx->pipelineCache,
-    //         &pipeline)
-    //     != SYR_RESULT_SUCCESS)
-    // {
-    //     return SYR_RESULT_VULKAN_FAILED;
-    // }
-
-    // SyrPipeline_Destroy(pipeline);
-    // SyrDescriptor_Destroy(descriptor);
-
-    // SyrShaderModule* shaderModule = NULL;
-
-    // if (SyrShaderModule_Initialize("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
-    //         SyrDevice_GetLogicalDeviceHandle(syrinx->device),
-    //         &shaderModule)
-    //     != SYR_RESULT_SUCCESS)
-    // {
-    //     return SYR_RESULT_RUNTIME_ERROR;
-    // }
-
-    // SyrShaderModule_Destroy(shaderModule);
-
-    // SyrTimelineSemaphore* timelineSemaphore = NULL;
-    // SyrTimelineSemaphore_Initialize(syrinx->device, &timelineSemaphore);
-    // SyrTimelineTicket ticket = SyrTimelineSemaphore_AssignTicket(timelineSemaphore, "testTicket");
-
-    // SyrCommandBuffer* commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
-
-    // SyrBarrier barrier = SyrBarrier_Initialize(SYR_RESOURCE_ACTION_UNDEFINED,
-    //     SYR_RESOURCE_ACTION_BUFFER_READ_WRITE,
-    //     bufferAllocation);
-
-    // SyrCommandBuffer_Begin(commandBuffer);
-    // SyrCommandBuffer_RecordBarrier(commandBuffer, barrier);
-    // SyrCommandBuffer_EndSubmit(commandBuffer, timelineSemaphore, &ticket);
-
-    // SyrDevice_WaitIdle(syrinx->device);
-
-    // SyrCommandBuffer_Destroy(commandBuffer);
-    // SyrBufferAllocation_Destroy(bufferAllocation);
-
-    // SyrTimelineSemaphore_UpdateSemaphoreCounter(timelineSemaphore);
-
-    // bool isComplete = SyrTimelineSemaphore_IsTicketComplete(timelineSemaphore, &ticket);
-    // SYR_LOG("Timeline Ticket (%s) Status: %d",
-    //     ticket.name,
-    //     (int)isComplete);
-
-    // SyrTimelineSemaphore_Destroy(timelineSemaphore);
+    float notesTest = 23234.f;
 
     SyrChordConfig chordConfig = {.name = "testChord",
         .notesData = {
             .name = "testNotesData",
             .size = sizeof(float)},
+        .noteBufferData = &notesTest,
         .instrumentCount = 1,
         .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
         .kernelIndex = 0};
 
-    SyrChord* chord = SyrSyrinx_CreateChord(syrinx, &chordConfig);
-    float notesTest = 23234.f;
-    SyrChord_WriteNotes(chord, &notesTest, sizeof(float), 0);
+    uint32_t chordCount = SYR_MAX_CHORDS;
+    SyrChordConfig chordConfigs[SYR_MAX_CHORDS];
 
-    SyrChord_Destroy(chord);
+    for (uint32_t i = 0; i < SYR_MAX_CHORDS; i++)
+    {
+        chordConfigs[i] = chordConfig;
+        snprintf(chordConfigs[i].name, sizeof(chordConfigs[i].name), "testNotesData%u", i);
+    }
+
+    SyrMelodyConfig melodyConfig = {.name = "testMelody",
+        .chordConfigs = chordConfigs,
+        .chordCount = chordCount};
+
+    SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
+    SyrMelody_PrintChords(melody);
+    SyrMelody_Destroy(melody);
 
     return SYR_RESULT_SUCCESS;
 }
@@ -163,6 +109,7 @@ SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config)
 {
+    uint32_t ssboCount = config->instrumentCount * SYR_INSTRUMENT_SSBO_COUNT;
     SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(config->instrumentCount,
         syrinx->allocator);
 
@@ -213,7 +160,48 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
         return NULL;
     }
 
+    if (config->noteBufferData != NULL)
+    {
+        SyrChord_WriteNotes(chord, config->noteBufferData, config->notesData.size, 0);
+    }
+
     return chord;
+}
+
+SyrMelody* SyrSyrinx_CreateMelody(SyrSyrinx* syrinx,
+    const SyrMelodyConfig* config)
+{
+    SyrMelody* melody = NULL;
+
+    if (SyrMelody_Initialize(config->name, &melody) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Melody: %s!", config->name);
+        return NULL;
+    }
+
+    SyrChord* chords[SYR_MAX_CHORDS] = {0};
+
+    for (uint32_t i = 0; i < config->chordCount; i++)
+    {
+        chords[i] = SyrSyrinx_CreateChord(syrinx, &config->chordConfigs[i]);
+
+        if (chords[i] == NULL)
+        {
+            SYR_ERROR("Failed to create Chord at index %u for Melody: %s!", i, config->name);
+
+            for (uint32_t j = 0; j < i; j++)
+            {
+                SyrChord_Destroy(chords[j]);
+            }
+
+            SyrMelody_Destroy(melody);
+            return NULL;
+        }
+    }
+
+    SyrMelody_AddChords(melody, chords, config->chordCount);
+
+    return melody;
 }
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)

@@ -11,6 +11,7 @@ typedef struct SyrChordConfig
 {
     char name[32];
     SyrNotesData notesData;
+    void* noteBufferData;
     uint32_t instrumentCount;
     char* shaderPath;
     uint32_t kernelIndex;
@@ -29,4 +30,5 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
     const size_t size,
     const size_t offset);
 
+const char* SyrChord_GetName(SyrChord* chord);
 void SyrChord_Destroy(SyrChord* chord);
