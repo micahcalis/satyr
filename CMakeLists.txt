@@ -17,34 +17,84 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-
 find_package(Vulkan REQUIRED)
 
-FetchContent_Declare(
-    VMA
-    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
-    GIT_TAG        master
-)
-FetchContent_MakeAvailable(VMA)
+# ==========================================
+# VMA IMPLEMENTATION (VENDOR)
+# ==========================================
 
 set(VMA_IMP_FILE "${CMAKE_BINARY_DIR}/vma_implementation.cpp")
 if(NOT EXISTS "${VMA_IMP_FILE}")
     file(WRITE "${VMA_IMP_FILE}"
         "#define VMA_IMPLEMENTATION\n"
-        "#include \"vk_mem_alloc.h\"\n")
+        "#include \"VMA/vk_mem_alloc.h\"\n")
 endif()
+
+# ==========================================
+# DR_LIBS IMPLEMENTATION (VENDOR)
+# ==========================================
+
+set(DR_LIBS_IMP_FILE "${CMAKE_BINARY_DIR}/dr_libs_implementation.c")
+if(NOT EXISTS "${DR_LIBS_IMP_FILE}")
+    file(WRITE "${DR_LIBS_IMP_FILE}"
+        "#define DR_WAV_IMPLEMENTATION\n"
+        "#include \"dr_wav.h\"\n\n"
+        "#define DR_MP3_IMPLEMENTATION\n"
+        "#include \"dr_mp3.h\"\n")
+endif()
+
+# ==========================================
+# TARGET EXECUTABLE & INCLUDES
+# ==========================================
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.c")
 
-add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE})
+add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${DR_LIBS_IMP_FILE})
 
-target_include_directories(Satyr PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(Satyr PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendor/VMA
+    ${CMAKE_SOURCE_DIR}/vendor/dr_libs
+)
 
 target_link_libraries(Satyr PRIVATE 
     Vulkan::Vulkan
-    GPUOpen::VulkanMemoryAllocator
 )
+
+# ==========================================
+# AUDIO ASSETS PIPELINE
+# ==========================================
+
+set(AUDIO_INPUT_DIR "${CMAKE_SOURCE_DIR}/assets/audio")
+set(AUDIO_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/audio")
+
+file(GLOB_RECURSE AUDIO_FILES 
+    CONFIGURE_DEPENDS 
+    "${AUDIO_INPUT_DIR}/*.wav" 
+    "${AUDIO_INPUT_DIR}/*.mp3"
+)
+
+set(AUDIO_COPY_OUTPUTS "")
+
+foreach(AUDIO_FILE ${AUDIO_FILES})
+    file(RELATIVE_PATH REL_AUDIO_PATH "${AUDIO_INPUT_DIR}" "${AUDIO_FILE}")
+    set(DST_AUDIO_PATH "${AUDIO_OUTPUT_DIR}/${REL_AUDIO_PATH}")
+    get_filename_component(DST_DIR "${DST_AUDIO_PATH}" DIRECTORY)
+
+    add_custom_command(
+        OUTPUT "${DST_AUDIO_PATH}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${DST_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${AUDIO_FILE}" "${DST_AUDIO_PATH}"
+        DEPENDS "${AUDIO_FILE}"
+        COMMENT "Copying Audio Asset: ${REL_AUDIO_PATH}"
+        VERBATIM
+    )
+
+    list(APPEND AUDIO_COPY_OUTPUTS "${DST_AUDIO_PATH}")
+endforeach()
+
+add_custom_target(AudioAssets DEPENDS ${AUDIO_COPY_OUTPUTS})
+add_dependencies(Satyr AudioAssets)
 
 # ==========================================
 # SHADER COMPILATION PIPELINE (SLANG)
@@ -94,14 +144,13 @@ function(add_slang_shader_target TARGET)
 endfunction()
 
 # 2. GLOB ALL SHADERS RECURSIVELY WITH CONFIGURE_DEPENDS
-# This ensures adding/deleting shaders automatically triggers a CMake update without manual re-configuring!
 file(GLOB_RECURSE ALL_RAW_SHADERS CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/shaders/*.slang")
 
-# 3. FILTER OUT THE MODULES FOLDER (modules are included, not compiled directly as standalone targets)
+# 3. FILTER OUT THE MODULES FOLDER
 set(ALL_SHADERS "")
 foreach(SHADER_FILE ${ALL_RAW_SHADERS})
     string(FIND "${SHADER_FILE}" "/modules/" IS_MODULE)
-    string(FIND "${SHADER_FILE}" "\\modules\\" IS_MODULE_WIN) # Handle Windows backslashes just in case
+    string(FIND "${SHADER_FILE}" "\\modules\\" IS_MODULE_WIN)
     if(IS_MODULE EQUAL -1 AND IS_MODULE_WIN EQUAL -1)
         list(APPEND ALL_SHADERS "${SHADER_FILE}")
     endif()

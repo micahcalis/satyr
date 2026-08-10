@@ -2,6 +2,7 @@
 
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/Allocator.h"
+#include "System/RecordPlayer/AudioAsset.h"
 
 #define SYR_INSTRUMENT_SSBO_COUNT 2
 
@@ -36,5 +37,8 @@ SyrResult SyrInstrument_Initialize(const uint32_t samples,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument);
+
+SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
+    const SyrAudioAsset* audioAsset);
 
 void SyrInstrument_Destroy(SyrInstrument* instrument);

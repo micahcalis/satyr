@@ -83,12 +83,21 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     SyrProducer_Destroy(producer);
 
+    SyrAudioAsset* audioAsset = NULL;
+
+    SyrAudioAsset_LoadMP3("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_ClearCanvas.mp3",
+        "testclip",
+        &audioAsset);
+
     SyrInstrumentConfig instrumentConfig = {.name = "testInstrument",
-        .samples = 1024};
+        .samples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO)};
 
     SyrInstrument* instrument = SyrSyrinx_CreateInstrument(syrinx, &instrumentConfig);
 
+    SyrInstrument_UploadAsset(instrument, audioAsset);
+
     SyrInstrument_Destroy(instrument);
+    SyrAudioAsset_Destroy(audioAsset);
 
     return SYR_RESULT_SUCCESS;
 }

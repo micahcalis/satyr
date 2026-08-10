@@ -123,6 +123,82 @@ SyrResult SyrInstrument_Initialize(const uint32_t samples,
     return SYR_RESULT_SUCCESS;
 }
 
+static float* SyrInstrument_DownmixStereo(const SyrAudioAsset* audioAsset)
+{
+    uint32_t assetSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
+    float* downmixSamples = SYR_ALLOC_ARRAY(float, assetSamples);
+
+    for (uint32_t i = 0; i < assetSamples; i++)
+    {
+        downmixSamples[i] = (audioAsset->pcmData[i * 2] + audioAsset->pcmData[i * 2 + 1]) * 0.5f;
+    }
+
+    return downmixSamples;
+}
+
+SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
+    const SyrAudioAsset* audioAsset)
+{
+    uint32_t assetSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
+
+    if (assetSamples > instrument->audioBuffer->samples)
+    {
+        SYR_ERROR("Asset Samples (name: %s, samples: %u) are greater than Instrument allocated Samples (name %s, samples: %u)",
+            audioAsset->name,
+            assetSamples,
+            instrument->name,
+            instrument->audioBuffer->samples);
+
+        return SYR_RESULT_FAILED;
+    }
+
+    if (assetSamples == 0)
+    {
+        SYR_ERROR("Audio Asset (name: %s) has 0 Samples, can't upload to Instrument (name: %s)",
+            audioAsset->name,
+            instrument->name);
+
+        return SYR_RESULT_FAILED;
+    }
+
+    bool isStereo = SyrAudioAsset_IsStereo(audioAsset);
+    float* uploadPcmData = NULL;
+
+    if (isStereo)
+    {
+        uploadPcmData = SyrInstrument_DownmixStereo(audioAsset);
+        if (uploadPcmData == NULL)
+        {
+            SYR_ERROR("Failed to downmix stereo asset: %s", audioAsset->name);
+            return SYR_RESULT_FAILED;
+        }
+    } else
+    {
+        uploadPcmData = audioAsset->pcmData;
+    }
+
+    SyrResult result = SyrBufferAllocation_Upload(instrument->audioBuffer->timeAllocation,
+        (void*)uploadPcmData,
+        sizeof(float) * assetSamples,
+        0);
+
+    if (isStereo)
+    {
+        free(uploadPcmData);
+    }
+
+    if (result != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Upload Audio Asset (name: %s) to Instrument (name: %s)",
+            audioAsset->name,
+            instrument->name);
+
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
 void SyrInstrument_Destroy(SyrInstrument* instrument)
 {
     if (instrument == NULL)
