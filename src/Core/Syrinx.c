@@ -67,7 +67,7 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     for (uint32_t i = 0; i < SYR_MAX_CHORDS; i++)
     {
         chordConfigs[i] = chordConfig;
-        snprintf(chordConfigs[i].name, sizeof(chordConfigs[i].name), "testNotesData%u", i);
+        snprintf(chordConfigs[i].name, sizeof(chordConfigs[i].name), "testChords%u", i);
     }
 
     SyrMelodyConfig melodyConfig = {.name = "testMelody",
@@ -77,6 +77,18 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
     SyrMelody_PrintChords(melody);
     SyrMelody_Destroy(melody);
+
+    SyrProducerConfig producerConfig = {.name = "testProducer"};
+    SyrProducer* producer = SyrSyrinx_CreateProducer(syrinx, &producerConfig);
+
+    SyrProducer_Destroy(producer);
+
+    SyrInstrumentConfig instrumentConfig = {.name = "testInstrument",
+        .samples = 1024};
+
+    SyrInstrument* instrument = SyrSyrinx_CreateInstrument(syrinx, &instrumentConfig);
+
+    SyrInstrument_Destroy(instrument);
 
     return SYR_RESULT_SUCCESS;
 }
@@ -202,6 +214,46 @@ SyrMelody* SyrSyrinx_CreateMelody(SyrSyrinx* syrinx,
     SyrMelody_AddChords(melody, chords, config->chordCount);
 
     return melody;
+}
+
+SyrProducer* SyrSyrinx_CreateProducer(SyrSyrinx* syrinx,
+    const SyrProducerConfig* config)
+{
+    SyrTimelineSemaphore* timelineSemaphore = NULL;
+
+    if (SyrTimelineSemaphore_Initialize(syrinx->device, &timelineSemaphore) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Timeline Semaphore for Producer: %s!", config->name);
+        return NULL;
+    }
+
+    SyrProducer* producer = NULL;
+
+    if (SyrProducer_Initialize(timelineSemaphore, config->name, &producer) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Producer: %s!", config->name);
+        return NULL;
+    }
+
+    return producer;
+}
+
+SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
+    const SyrInstrumentConfig* config)
+{
+    SyrInstrument* instrument = NULL;
+
+    if (SyrInstrument_Initialize(config->samples,
+            config->name,
+            syrinx->allocator,
+            &instrument)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Instrument: %s", config->name);
+        return NULL;
+    }
+
+    return instrument;
 }
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)

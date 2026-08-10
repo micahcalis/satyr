@@ -3,6 +3,11 @@
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/TimelineSemaphore.h"
 
+typedef struct SyrProducerConfig
+{
+    const char name[32];
+} SyrProducerConfig;
+
 typedef struct SyrProducer SyrProducer;
 
 SyrResult SyrProducer_Initialize(SyrTimelineSemaphore* timelineSemaphore,
