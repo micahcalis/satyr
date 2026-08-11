@@ -72,16 +72,22 @@ SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
-void SyrCommandBuffer_RecordBarrier(SyrCommandBuffer* commandBuffer, const SyrBarrier barrier)
+void SyrCommandBuffer_RecordBarrierBatch(SyrCommandBuffer* commandBuffer, const SyrBarrierBatch* barrierBatch)
 {
+    if (SyrList_Count(barrierBatch->barrierHandles) == 0)
+    {
+        SYR_ERROR("Cant record Barrier Batch on Command Buffer with 0 Barriers!");
+        return;
+    }
+
     vkCmdPipelineBarrier(commandBuffer->commandBufferHandle,
-        barrier.sourceStage,
-        barrier.destinationStage,
+        barrierBatch->sourceStage,
+        barrierBatch->destinationStage,
         0,
         0,
         NULL,
-        1,
-        &barrier.barrierHandle,
+        (uint32_t)SyrList_Count(barrierBatch->barrierHandles),
+        barrierBatch->barrierHandles,
         0,
         NULL);
 }

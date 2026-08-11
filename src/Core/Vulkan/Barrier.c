@@ -1,6 +1,6 @@
 #include "Barrier.h"
 
-static VkAccessFlagBits SyrBarrier_GetBufferAccessFlags(const SyrResourceAction action)
+static VkAccessFlags SyrBarrierBatch_GetBufferAccessFlags(const SyrResourceAction action)
 {
     switch (action)
     {
@@ -19,47 +19,83 @@ static VkAccessFlagBits SyrBarrier_GetBufferAccessFlags(const SyrResourceAction 
     }
 }
 
-static VkPipelineStageFlagBits SyrBarrier_GetBufferPipelineStageFlags(const SyrResourceAction action)
+static VkPipelineStageFlags SyrBarrierBatch_GetBufferPipelineStageFlags(const SyrResourceAction action, const bool isDestination)
 {
     switch (action)
     {
-    case SYR_RESOURCE_ACTION_UNDEFINED:
-        return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     case SYR_RESOURCE_ACTION_BUFFER_READ:
-        return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     case SYR_RESOURCE_ACTION_BUFFER_WRITE:
-        return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     case SYR_RESOURCE_ACTION_BUFFER_READ_WRITE:
         return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     case SYR_RESOURCE_ACTION_TRANSFER_READ:
-        return VK_PIPELINE_STAGE_TRANSFER_BIT;
     case SYR_RESOURCE_ACTION_TRANSFER_WRITE:
         return VK_PIPELINE_STAGE_TRANSFER_BIT;
+    case SYR_RESOURCE_ACTION_UNDEFINED:
+        return isDestination ? VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT : VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     }
 }
 
-SyrBarrier SyrBarrier_Initialize(const SyrResourceAction previousAction,
+SyrResult SyrBarrierBatch_Initialize(const SyrResourceAction previousAction,
     const SyrResourceAction targetAction,
-    const SyrBufferAllocation* buffer)
+    const uint32_t barrierCount,
+    SyrBarrierBatch** barrierBatch)
 {
-    SyrBarrier barrier = {0};
-    barrier.barrierHandle.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-    barrier.barrierHandle.buffer = buffer->bufferHandle;
-    barrier.barrierHandle.size = buffer->info.size;
-    barrier.barrierHandle.offset = buffer->info.offset;
+    if (barrierCount == 0)
+    {
+        SYR_ERROR("Can't Initialize Barrier with Count 0!");
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
 
-    barrier.barrierHandle.srcAccessMask = SyrBarrier_GetBufferAccessFlags(previousAction);
-    barrier.sourceStage = SyrBarrier_GetBufferPipelineStageFlags(previousAction);
-    barrier.barrierHandle.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    *barrierBatch = SYR_NEW(*barrierBatch);
+    (*barrierBatch)->barrierHandles = NULL;
+    (*barrierBatch)->sourceStage = SyrBarrierBatch_GetBufferPipelineStageFlags(previousAction, false);
+    (*barrierBatch)->destinationStage = SyrBarrierBatch_GetBufferPipelineStageFlags(targetAction, true);
 
-    barrier.barrierHandle.dstAccessMask = SyrBarrier_GetBufferAccessFlags(targetAction);
-    barrier.destinationStage = SyrBarrier_GetBufferPipelineStageFlags(targetAction);
-    barrier.barrierHandle.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    SyrList_Reserve((*barrierBatch)->barrierHandles, barrierCount);
 
-    return barrier;
+    VkBufferMemoryBarrier baseBarrier = {0};
+    baseBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    baseBarrier.srcAccessMask = SyrBarrierBatch_GetBufferAccessFlags(previousAction);
+    baseBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    baseBarrier.dstAccessMask = SyrBarrierBatch_GetBufferAccessFlags(targetAction);
+    baseBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    for (uint32_t i = 0; i < barrierCount; i++)
+    {
+        SyrList_Push((*barrierBatch)->barrierHandles, baseBarrier);
+    }
+
+    return SYR_RESULT_SUCCESS;
 }
 
-VkBufferMemoryBarrier* SyrBarrier_GetBarrierHandle(SyrBarrier* barrier)
+void SyrBarrierBatch_AttachBuffer(SyrBarrierBatch* barrierBatch,
+    const SyrBufferAllocation* buffer,
+    const uint32_t index)
 {
-    return &barrier->barrierHandle;
+    if (index >= SyrList_Count(barrierBatch->barrierHandles))
+    {
+        SYR_ERROR("Attach Buffer Index (%u) out of bounds for Barrier Count (%zu)!",
+            index,
+            SyrList_Count(barrierBatch->barrierHandles));
+
+        return;
+    }
+
+    VkBufferMemoryBarrier* barrier = &barrierBatch->barrierHandles[index];
+    barrier->buffer = buffer->bufferHandle;
+    barrier->size = buffer->info.size;
+    barrier->offset = buffer->info.offset;
+}
+
+void SyrBarrierBatch_Destroy(SyrBarrierBatch* barrierBatch)
+{
+    if (barrierBatch == NULL)
+        return;
+
+    if (barrierBatch->barrierHandles != NULL)
+    {
+        SyrList_Free(barrierBatch->barrierHandles);
+    }
+
+    free(barrierBatch);
 }

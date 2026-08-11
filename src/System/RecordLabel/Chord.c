@@ -50,7 +50,7 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
 }
 
 SyrResult SyrChord_WriteInstrument(SyrChord* chord,
-    SyrInstrument* instrument,
+    const SyrInstrument* instrument,
     const uint32_t instrumentSlot)
 {
     if (chord->instrumentCount == 0)

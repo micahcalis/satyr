@@ -39,8 +39,9 @@ SyrResult SyrChord_WriteMaster(SyrChord* chord,
     const SyrAudioBuffer* masterBuffer);
 
 SyrResult SyrChord_WriteInstrument(SyrChord* chord,
-    SyrInstrument* instrument,
+    const SyrInstrument* instrument,
     const uint32_t instrumentSlot);
 
 const char* SyrChord_GetName(SyrChord* chord);
+uint32_t SyrChord_GetInstrumentCount(SyrChord* chord);
 void SyrChord_Destroy(SyrChord* chord);

@@ -38,7 +38,8 @@ void SyrAlbum_Release(SyrAlbum* album, SyrProducer* producer)
         SyrProducer_GetTimelineSemaphore(producer),
         ticket);
 
-    SyrAlbum_Reset(album);
+    // nopeee should prob wait to destroy songs after GPU work is finished, also prob no need to reset an album
+    // SyrAlbum_Reset(album);
 }
 
 void SyrAlbum_Reset(SyrAlbum* album)

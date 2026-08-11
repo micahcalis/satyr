@@ -3,12 +3,12 @@
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/Allocations.h"
 
-typedef struct SyrBarrier
+typedef struct SyrBarrierBatch
 {
-    VkBufferMemoryBarrier barrierHandle;
-    VkPipelineStageFlagBits sourceStage;
-    VkPipelineStageFlagBits destinationStage;
-} SyrBarrier;
+    SyrList(VkBufferMemoryBarrier) barrierHandles;
+    VkPipelineStageFlags sourceStage;
+    VkPipelineStageFlags destinationStage;
+} SyrBarrierBatch;
 
 typedef enum
 {
@@ -20,8 +20,13 @@ typedef enum
     SYR_RESOURCE_ACTION_TRANSFER_READ
 } SyrResourceAction;
 
-SyrBarrier SyrBarrier_Initialize(const SyrResourceAction previousAction,
+SyrResult SyrBarrierBatch_Initialize(const SyrResourceAction previousAction,
     const SyrResourceAction targetAction,
-    const SyrBufferAllocation* buffer);
+    const uint32_t barrierCount,
+    SyrBarrierBatch** barrierBatch);
 
-VkBufferMemoryBarrier* SyrBarrier_GetBarrierHandle(SyrBarrier* barrier);
+void SyrBarrierBatch_AttachBuffer(SyrBarrierBatch* barrierBatch,
+    const SyrBufferAllocation* buffer,
+    const uint32_t index);
+
+void SyrBarrierBatch_Destroy(SyrBarrierBatch* barrierBatch);
