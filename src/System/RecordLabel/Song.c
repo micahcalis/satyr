@@ -2,16 +2,22 @@
 
 typedef struct SyrSong
 {
+    SyrAudioBuffer* masterBuffer;
     SyrList(SyrInstrument*) instruments;
     SyrMelody* melody;
+    char name[32];
 } SyrSong;
 
-SyrResult SyrSong_Initialize(SyrMelody* melody,
+SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
+    SyrMelody* melody,
+    const char name[32],
     SyrSong** song)
 {
     (*song) = SYR_NEW(*song);
+    (*song)->masterBuffer = masterBuffer;
     (*song)->instruments = NULL;
     (*song)->melody = melody;
+    SYR_STR_COPY((*song)->name, name);
 
     return SYR_RESULT_SUCCESS;
 }
@@ -41,9 +47,9 @@ void SyrSong_Destroy(SyrSong* song)
     if (song == NULL)
         return;
 
-    if (song->melody != NULL)
+    if (song->masterBuffer != NULL)
     {
-        SyrMelody_Destroy(song->melody);
+        SyrAudioBuffer_Destroy(song->masterBuffer);
     }
 
     if (song->instruments != NULL)

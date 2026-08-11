@@ -5,6 +5,7 @@ typedef struct SyrChord
     SyrPipeline* pipeline;
     SyrDescriptor* descriptor;
     SyrNoteBuffer* noteBuffer;
+    uint32_t instrumentCount;
     char name[32];
 } SyrChord;
 
@@ -12,12 +13,14 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     SyrDescriptor* descriptor,
     SyrNoteBuffer* noteBuffer,
     const char name[32],
+    const uint32_t instrumentCount,
     SyrChord** chord)
 {
     *chord = SYR_NEW(*chord);
     (*chord)->pipeline = pipeline;
     (*chord)->descriptor = descriptor;
     (*chord)->noteBuffer = noteBuffer;
+    (*chord)->instrumentCount = instrumentCount;
     SYR_STR_COPY((*chord)->name, name);
 
     return SYR_RESULT_SUCCESS;
@@ -42,6 +45,68 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
         SYR_BUFFER_TYPE_UNIFORM,
         size,
         offset);
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrChord_WriteInstrument(SyrChord* chord,
+    SyrInstrument* instrument,
+    const uint32_t instrumentSlot)
+{
+    if (chord->instrumentCount == 0)
+    {
+        SYR_ERROR("Can't write Instrument to Chord (name: %s) which has 0 Instrument slots!", chord->name);
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    if (instrumentSlot >= chord->instrumentCount)
+    {
+        SYR_ERROR("Tried writing Instrument (name: %s) to Chord (name: %s) to slot %u, while max slot index is %u",
+            SyrInstrument_GetName(instrument),
+            chord->name,
+            instrumentSlot,
+            chord->instrumentCount - 1);
+
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    uint32_t instrumentTimeBinding = SYR_NOTE_BUFFER_UB_COUNT + SYR_MASTER_SSBO_COUNT + (instrumentSlot * SYR_INSTRUMENT_SSBO_COUNT);
+    uint32_t instrumentFrequencyBinding = instrumentTimeBinding + 1;
+    const SyrAudioBuffer* audioBuffer = SyrInstrument_GetAudioBuffer(instrument);
+
+    SyrDescriptor_WriteBuffer(chord->descriptor,
+        audioBuffer->timeAllocation,
+        instrumentTimeBinding,
+        SYR_BUFFER_TYPE_SSBO,
+        audioBuffer->timeAllocation->info.size,
+        0);
+
+    SyrDescriptor_WriteBuffer(chord->descriptor,
+        audioBuffer->frequencyAllocation,
+        instrumentFrequencyBinding,
+        SYR_BUFFER_TYPE_SSBO,
+        audioBuffer->frequencyAllocation->info.size,
+        0);
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrChord_WriteMaster(SyrChord* chord,
+    const SyrAudioBuffer* masterBuffer)
+{
+    SyrDescriptor_WriteBuffer(chord->descriptor,
+        masterBuffer->timeAllocation,
+        SYR_MASTER_TIME_DESCRIPTOR_BINDING,
+        SYR_BUFFER_TYPE_SSBO,
+        masterBuffer->timeAllocation->info.size,
+        0);
+
+    SyrDescriptor_WriteBuffer(chord->descriptor,
+        masterBuffer->frequencyAllocation,
+        SYR_MASTER_FREQUENCY_DESCRIPTOR_BINDING,
+        SYR_BUFFER_TYPE_SSBO,
+        masterBuffer->frequencyAllocation->info.size,
+        0);
 
     return SYR_RESULT_SUCCESS;
 }

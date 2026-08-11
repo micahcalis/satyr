@@ -1,14 +1,17 @@
-#include "Core/SyrinxMacros.slang"
+#include "Core/SatyrMacros.slang"
 
 SYR_SHADER_PARAMS
 {
     float _Test;
 }
 
-SYR_RW_BUFFER(_TestBuffer, float4, 1)
+SYR_MASTER_BUFFER
+SYR_INSTRUMENT_BUFFER(_Example, 0)
 
-SYR_COMPUTE_KERNEL(0, SYR_TG_SIZE_L)
+SYR_TG_SIZE_L
+void SyrKernel_0(uint3 id : SV_DispatchThreadID)
 {
-    uint testId = id.x;
-    _TestBuffer[testId] = float4(1, 1, 0, 0);
+    _ExampleTime[0] = 2.0f;
+    _ExampleFrequency[0] = (Satyr.Complex)0;
+    _MasterTime[0] = 0.234f;
 }

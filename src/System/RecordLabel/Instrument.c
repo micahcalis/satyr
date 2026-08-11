@@ -1,12 +1,5 @@
 #include "Instrument.h"
 
-typedef struct SyrAudioBuffer
-{
-    SyrBufferAllocation* timeAllocation;
-    SyrBufferAllocation* frequencyAllocation;
-    uint32_t samples;
-} SyrAudioBuffer;
-
 static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
@@ -197,6 +190,16 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
     }
 
     return SYR_RESULT_SUCCESS;
+}
+
+const SyrAudioBuffer* SyrInstrument_GetAudioBuffer(const SyrInstrument* instrument)
+{
+    return instrument->audioBuffer;
+}
+
+const char* SyrInstrument_GetName(const SyrInstrument* instrument)
+{
+    return instrument->name;
 }
 
 void SyrInstrument_Destroy(SyrInstrument* instrument)

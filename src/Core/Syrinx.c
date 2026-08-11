@@ -61,42 +61,31 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
         .kernelIndex = 0};
 
-    uint32_t chordCount = SYR_MAX_CHORDS;
-    SyrChordConfig chordConfigs[SYR_MAX_CHORDS];
-
-    for (uint32_t i = 0; i < SYR_MAX_CHORDS; i++)
-    {
-        chordConfigs[i] = chordConfig;
-        snprintf(chordConfigs[i].name, sizeof(chordConfigs[i].name), "testChords%u", i);
-    }
-
     SyrMelodyConfig melodyConfig = {.name = "testMelody",
-        .chordConfigs = chordConfigs,
-        .chordCount = chordCount};
+        .chordConfigs = &chordConfig,
+        .chordCount = 1};
 
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
-    SyrMelody_PrintChords(melody);
-    SyrMelody_Destroy(melody);
-
-    SyrProducerConfig producerConfig = {.name = "testProducer"};
-    SyrProducer* producer = SyrSyrinx_CreateProducer(syrinx, &producerConfig);
-
-    SyrProducer_Destroy(producer);
 
     SyrAudioAsset* audioAsset = NULL;
 
-    SyrAudioAsset_LoadMP3("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_ClearCanvas.mp3",
-        "testclip",
+    SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
+        "AudioPaint",
         &audioAsset);
 
     SyrInstrumentConfig instrumentConfig = {.name = "testInstrument",
         .samples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO)};
 
-    SyrInstrument* instrument = SyrSyrinx_CreateInstrument(syrinx, &instrumentConfig);
+    SyrSongConfig songConfig = {.name = "testSong",
+        .instrumentConfigs = &instrumentConfig,
+        .instrumentCount = 1,
+        .masterSamples = 1024,
+        .melody = melody};
 
-    SyrInstrument_UploadAsset(instrument, audioAsset);
+    SyrSong* song = SyrSyrinx_CreateSong(syrinx, &songConfig);
 
-    SyrInstrument_Destroy(instrument);
+    SyrSong_Destroy(song);
+    SyrMelody_Destroy(melody);
     SyrAudioAsset_Destroy(audioAsset);
 
     return SYR_RESULT_SUCCESS;
@@ -130,8 +119,8 @@ SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config)
 {
-    uint32_t ssboCount = config->instrumentCount * SYR_INSTRUMENT_SSBO_COUNT;
-    SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(config->instrumentCount,
+    uint32_t ssboCount = SYR_MASTER_SSBO_COUNT + config->instrumentCount * SYR_INSTRUMENT_SSBO_COUNT;
+    SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(ssboCount,
         syrinx->allocator);
 
     if (descriptor == NULL)
@@ -171,6 +160,7 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
             descriptor,
             noteBuffer,
             config->name,
+            config->instrumentCount,
             &chord)
         != SYR_RESULT_SUCCESS)
     {
@@ -263,6 +253,79 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
     }
 
     return instrument;
+}
+
+SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
+    const uint32_t masterSamples)
+{
+    SyrAudioBuffer* masterBuffer = NULL;
+
+    if (SyrAudioBuffer_Initialize(masterSamples,
+            syrinx->allocator,
+            &masterBuffer)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Master Buffer with samples: %u", masterSamples);
+        return NULL;
+    }
+
+    return masterBuffer;
+}
+
+SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
+    const SyrSongConfig* config)
+{
+    if (config->melody == NULL)
+    {
+        SYR_ERROR("Can't create Song (name: %s) with null Melody!", config->name);
+        return NULL;
+    }
+
+    SyrAudioBuffer* masterBuffer = SyrSyrinx_CreateMasterBuffer(syrinx, config->masterSamples);
+
+    if (masterBuffer == NULL)
+    {
+        SYR_ERROR("Failed to create Master Buffer for Song: %s", config->name);
+        return NULL;
+    }
+
+    SyrSong* song = NULL;
+
+    if (SyrSong_Initialize(masterBuffer,
+            config->melody,
+            config->name,
+            &song)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Song: %s", config->name);
+        return NULL;
+    }
+
+    SyrInstrument* instruments[SYR_MAX_INSTRUMENTS] = {0};
+
+    for (uint32_t i = 0; i < config->instrumentCount; i++)
+    {
+        instruments[i] = SyrSyrinx_CreateInstrument(syrinx, &config->instrumentConfigs[i]);
+
+        if (instruments[i] == NULL)
+        {
+            SYR_ERROR("Failed to create Instrument (name: %s) for Song: %s",
+                config->instrumentConfigs[i].name,
+                config->name);
+
+            for (uint32_t j = 0; j < i; j++)
+            {
+                SyrInstrument_Destroy(instruments[j]);
+            }
+
+            SyrSong_Destroy(song);
+            return NULL;
+        }
+    }
+
+    SyrSong_AddInstruments(song, instruments, config->instrumentCount);
+
+    return song;
 }
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)

@@ -3,6 +3,8 @@
 #include "Core/SatyrCore.h"
 #include "Core/Vulkan/Allocations.h"
 
+#define SYR_NOTE_BUFFER_UB_COUNT 1
+
 typedef struct SyrNotesData
 {
     size_t size;

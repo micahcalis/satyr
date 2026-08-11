@@ -53,7 +53,7 @@ void SyrDescriptor_WriteBuffer(SyrDescriptor* descriptor,
     VkDescriptorBufferInfo bufferInfo = {0};
     bufferInfo.buffer = bufferAllocation->bufferHandle;
     bufferInfo.offset = offset;
-    bufferInfo.range = size;
+    bufferInfo.range = VK_WHOLE_SIZE;
 
     VkWriteDescriptorSet descriptorWrite = {0};
     descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
