@@ -2,6 +2,7 @@
 
 #include "Core/SatyrCore.h"
 #include "System/RecordLabel/Chord.h"
+#include "System/RecordLabel/Metronome.h"
 
 #define SYR_MAX_CHORDS 64
 
@@ -17,5 +18,14 @@ typedef struct SyrMelody SyrMelody;
 SyrResult SyrMelody_Initialize(const char name[32], SyrMelody** melody);
 void SyrMelody_AddChords(SyrMelody* melody, SyrChord** chords, size_t count);
 void SyrMelody_PrintChords(SyrMelody* melody);
+SyrChord* SyrMelody_GetChord(const SyrMelody* melody, const uint32_t index);
+size_t SyrMelody_GetChordCount(const SyrMelody* melody);
+const char* SyrMelody_GetName(const SyrMelody* melody);
+SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody);
+
+SyrResult SyrMelody_PlayChord(SyrMelody* melody,
+    const uint32_t index,
+    SyrCommandBuffer* commandBuffer);
+
 void SyrMelody_Destroy(SyrMelody* melody);
 

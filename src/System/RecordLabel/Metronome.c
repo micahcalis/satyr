@@ -1,10 +1,74 @@
 #include "Metronome.h"
 
-SyrResult SyrMetronome_Initialize(SyrMetronome** metronome)
+SyrResult SyrMetronome_Initialize(SyrMetronomeConfig* config,
+    SyrMetronome** metronome)
 {
     *metronome = SYR_NEW(*metronome);
     (*metronome)->phases = NULL;
 
+    return SyrMetronome_Configure(*metronome, config);
+}
+
+static void SyrMetronome_AddBindingToPhase(SyrMetronomePhase* phase,
+    const SyrInstrumentBinding binding)
+{
+    SyrList_Push(phase->instrumentBindings, binding);
+}
+
+SyrMetronomePhase* SyrMetronome_AddPhase(SyrMetronome* metronome,
+    const SyrMetronomePhaseConfig* config)
+{
+    if (config->bindingCount != SyrList_Count(config->bindings))
+    {
+        SYR_ERROR("Metronome Phase Configuration Bindings Count mismatch!");
+        return NULL;
+    }
+
+    SyrMetronomePhase phase = {.instrumentBindings = NULL,
+        .instrumentCount = config->bindingCount,
+        .requiresMaster = config->requiresMaster};
+
+    for (size_t i = 0; i < phase.instrumentCount; i++)
+    {
+        SyrMetronome_AddBindingToPhase(&phase, config->bindings[i]);
+    }
+
+    SyrList_Push(metronome->phases, phase);
+    return &metronome->phases[SyrList_Count(metronome->phases) - 1];
+}
+
+SyrResult SyrMetronome_Configure(SyrMetronome* metronome,
+    SyrMetronomeConfig* config)
+{
+    if (config->phaseCount != SyrList_Count(config->phaseConfigs))
+    {
+        SYR_ERROR("Metronome Configuration Phase Count mismatch!");
+        SyrMetronomeConfig_Destroy(config);
+        return SYR_RESULT_FAILED;
+    }
+
+    if (config->phaseCount == 0)
+    {
+        SYR_ERROR("Metronome Configure Phase Count Can't be 0!");
+        SyrMetronomeConfig_Destroy(config);
+        return SYR_RESULT_FAILED;
+    }
+
+    SyrMetronome_Clear(metronome);
+
+    for (uint32_t i = 0; i < config->phaseCount; i++)
+    {
+        SyrMetronomePhase* phase = SyrMetronome_AddPhase(metronome,
+            &config->phaseConfigs[i]);
+
+        if (phase == NULL)
+        {
+            SyrMetronomeConfig_Destroy(config);
+            return SYR_RESULT_FAILED;
+        }
+    }
+
+    SyrMetronomeConfig_Destroy(config);
     return SYR_RESULT_SUCCESS;
 }
 
@@ -32,7 +96,7 @@ SyrResult SyrMetronome_RecordPhaseBarriers(SyrMetronome* metronome,
     SyrCommandBuffer* commandBuffer,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,
-    const SyrList(SyrInstrument*) instruments)
+    SyrList(SyrInstrument*) instruments)
 {
     if (SyrMetronome_ValidatePhase(metronome, phaseIndex) != SYR_RESULT_SUCCESS)
     {
@@ -103,11 +167,10 @@ SyrResult SyrMetronome_RecordPhaseBarriers(SyrMetronome* metronome,
 }
 
 SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
-    SyrCommandBuffer* commandBuffer,
     SyrChord* chord,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,
-    const SyrList(SyrInstrument*) instruments)
+    SyrList(SyrInstrument*) instruments)
 {
     if (SyrMetronome_ValidatePhase(metronome, phaseIndex) != SYR_RESULT_SUCCESS)
     {
@@ -147,12 +210,12 @@ SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
 
         if (SyrChord_WriteInstrument(chord,
                 instruments[binding->instrumentIndex],
-                binding->instrumentSlot)
+                (uint32_t)binding->instrumentSlot)
             != SYR_RESULT_SUCCESS)
         {
             SYR_ERROR("Failed to Write Instrument Buffer to Chord: %s, at Instrument Slot %u",
                 SyrChord_GetName(chord),
-                binding->instrumentSlot);
+                (uint32_t)binding->instrumentSlot);
 
             return SYR_RESULT_RUNTIME_ERROR;
         }
@@ -183,4 +246,18 @@ void SyrMetronome_Destroy(SyrMetronome* metronome)
     }
 
     free(metronome);
+}
+
+void SyrMetronomeConfig_Destroy(SyrMetronomeConfig* metronomeConfig)
+{
+    if (metronomeConfig == NULL)
+        return;
+
+    for (size_t i = 0; i < SyrList_Count(metronomeConfig->phaseConfigs); i++)
+    {
+        SyrList_Free(metronomeConfig->phaseConfigs[i].bindings);
+    }
+
+    SyrList_Free(metronomeConfig->phaseConfigs);
+    free(metronomeConfig);
 }

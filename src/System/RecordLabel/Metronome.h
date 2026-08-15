@@ -7,7 +7,7 @@
 typedef struct SyrInstrumentBinding
 {
     uint32_t instrumentIndex;
-    uint32_t instrumentSlot;
+    enum SyrInstrumentSlot instrumentSlot;
 } SyrInstrumentBinding;
 
 typedef struct SyrMetronomePhase
@@ -17,26 +17,46 @@ typedef struct SyrMetronomePhase
     bool requiresMaster;
 } SyrMetronomePhase;
 
+typedef struct SyrMetronomePhaseConfig
+{
+    SyrList(SyrInstrumentBinding) bindings;
+    uint32_t bindingCount;
+    bool requiresMaster;
+} SyrMetronomePhaseConfig;
+
+typedef struct SyrMetronomeConfig
+{
+    SyrList(SyrMetronomePhaseConfig) phaseConfigs;
+    uint32_t phaseCount;
+} SyrMetronomeConfig;
+
 typedef struct SyrMetronome
 {
     SyrList(SyrMetronomePhase) phases;
 } SyrMetronome;
 
-SyrResult SyrMetronome_Initialize(SyrMetronome** metronome);
+SyrResult SyrMetronome_Initialize(SyrMetronomeConfig* config,
+    SyrMetronome** metronome);
+
+SyrMetronomePhase* SyrMetronome_AddPhase(SyrMetronome* metronome,
+    const SyrMetronomePhaseConfig* config);
+
+SyrResult SyrMetronome_Configure(SyrMetronome* metronome,
+    SyrMetronomeConfig* config);
 
 SyrResult SyrMetronome_RecordPhaseBarriers(SyrMetronome* metronome,
     SyrCommandBuffer* commandBuffer,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,
-    const SyrList(SyrInstrument*) instruments);
+    SyrList(SyrInstrument*) instruments);
 
 SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
-    SyrCommandBuffer* commandBuffer,
     SyrChord* chord,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,
-    const SyrList(SyrInstrument*) instruments);
+    SyrList(SyrInstrument*) instruments);
 
 void SyrMetronome_Clear(SyrMetronome* metronome);
 void SyrMetronome_Destroy(SyrMetronome* metronome);
+void SyrMetronomeConfig_Destroy(SyrMetronomeConfig* metronomeConfig);
 

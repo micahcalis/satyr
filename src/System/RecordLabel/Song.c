@@ -5,11 +5,13 @@ typedef struct SyrSong
     SyrAudioBuffer* masterBuffer;
     SyrList(SyrInstrument*) instruments;
     SyrMelody* melody;
+    SyrMetronome* metronome;
     char name[32];
 } SyrSong;
 
 SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
     SyrMelody* melody,
+    SyrMetronome* metronome,
     const char name[32],
     SyrSong** song)
 {
@@ -17,6 +19,7 @@ SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
     (*song)->masterBuffer = masterBuffer;
     (*song)->instruments = NULL;
     (*song)->melody = melody;
+    (*song)->metronome = metronome;
     SYR_STR_COPY((*song)->name, name);
 
     return SYR_RESULT_SUCCESS;
@@ -37,9 +40,59 @@ void SyrSong_AddInstruments(SyrSong* song, SyrInstrument** instruments, size_t c
     SyrList_PushRange(song->instruments, instruments, count);
 }
 
-void SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
+static SyrResult SyrSong_PrePlayChord(SyrSong* song,
+    SyrChord* chord,
+    const size_t phaseIndex,
+    SyrCommandBuffer* commandBuffer)
 {
-    // melody stuff that has to be figured out
+    if (SyrMetronome_BindPhaseBuffers(song->metronome,
+            chord,
+            phaseIndex,
+            song->masterBuffer,
+            song->instruments)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to bind Phase Buffers for Song: %s", song->name);
+        return SYR_RESULT_FAILED;
+    }
+
+    if (SyrMetronome_RecordPhaseBarriers(song->metronome,
+            commandBuffer,
+            phaseIndex,
+            song->masterBuffer,
+            song->instruments)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to record Phase Barriers for Song: %s", song->name);
+        return SYR_RESULT_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
+{
+    for (size_t i = 0; i < SyrMelody_GetChordCount(song->melody); i++)
+    {
+        SyrChord* chord = SyrMelody_GetChord(song->melody, (uint32_t)i);
+
+        if (SyrSong_PrePlayChord(song, chord, i, commandBuffer) != SYR_RESULT_SUCCESS)
+        {
+            return SYR_RESULT_FAILED;
+        }
+
+        if (SyrMelody_PlayChord(song->melody, i, commandBuffer) != SYR_RESULT_SUCCESS)
+        {
+            SYR_ERROR("Failed to Play Chord for Song (name: %s) with Melody (name: %s), Chord (name: %s)!",
+                song->name,
+                SyrMelody_GetName(song->melody),
+                SyrChord_GetName(chord));
+
+            return SYR_RESULT_FAILED;
+        }
+    }
+
+    return SYR_RESULT_SUCCESS;
 }
 
 void SyrSong_Destroy(SyrSong* song)

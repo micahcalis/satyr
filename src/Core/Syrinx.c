@@ -67,6 +67,13 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
 
+    SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
+    metronomeConfig->phaseConfigs[0].bindings[0].instrumentIndex = 0;
+    metronomeConfig->phaseConfigs[0].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
+
+    SyrMetronome* metronome = NULL;
+    SyrMetronome_Initialize(metronomeConfig, &metronome);
+
     SyrAudioAsset* audioAsset = NULL;
 
     SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
@@ -80,12 +87,14 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         .instrumentConfigs = &instrumentConfig,
         .instrumentCount = 1,
         .masterSamples = 1024,
-        .melody = melody};
+        .melody = melody,
+        .metronome = metronome};
 
     SyrSong* song = SyrSyrinx_CreateSong(syrinx, &songConfig);
 
     SyrSong_Destroy(song);
     SyrMelody_Destroy(melody);
+    SyrMetronome_Destroy(metronome);
     SyrAudioAsset_Destroy(audioAsset);
 
     return SYR_RESULT_SUCCESS;
@@ -293,6 +302,7 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
 
     if (SyrSong_Initialize(masterBuffer,
             config->melody,
+            config->metronome,
             config->name,
             &song)
         != SYR_RESULT_SUCCESS)

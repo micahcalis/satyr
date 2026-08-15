@@ -111,9 +111,14 @@ SyrResult SyrChord_WriteMaster(SyrChord* chord,
     return SYR_RESULT_SUCCESS;
 }
 
-const char* SyrChord_GetName(SyrChord* chord)
+const char* SyrChord_GetName(const SyrChord* chord)
 {
     return chord->name;
+}
+
+uint32_t SyrChord_GetInstrumentCount(const SyrChord* chord)
+{
+    return chord->instrumentCount;
 }
 
 void SyrChord_Destroy(SyrChord* chord)

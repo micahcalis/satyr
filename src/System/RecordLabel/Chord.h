@@ -42,6 +42,6 @@ SyrResult SyrChord_WriteInstrument(SyrChord* chord,
     const SyrInstrument* instrument,
     const uint32_t instrumentSlot);
 
-const char* SyrChord_GetName(SyrChord* chord);
-uint32_t SyrChord_GetInstrumentCount(SyrChord* chord);
+const char* SyrChord_GetName(const SyrChord* chord);
+uint32_t SyrChord_GetInstrumentCount(const SyrChord* chord);
 void SyrChord_Destroy(SyrChord* chord);
