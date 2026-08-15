@@ -7,7 +7,7 @@
 #define SYR_INSTRUMENT_SSBO_COUNT 2
 #define SYR_MAX_INSTRUMENTS 14
 
-enum SyrInstrumentSlot
+typedef enum
 {
     SYR_INSTRUMENT_SLOT_0 = 0,
     SYR_INSTRUMENT_SLOT_1 = 1,
@@ -23,7 +23,7 @@ enum SyrInstrumentSlot
     SYR_INSTRUMENT_SLOT_11 = 11,
     SYR_INSTRUMENT_SLOT_12 = 12,
     SYR_INSTRUMENT_SLOT_13 = 13
-};
+} SyrInstrumentSlot;
 
 typedef struct SyrTimeAudioSample
 {

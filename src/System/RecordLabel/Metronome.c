@@ -26,7 +26,8 @@ SyrMetronomePhase* SyrMetronome_AddPhase(SyrMetronome* metronome,
 
     SyrMetronomePhase phase = {.instrumentBindings = NULL,
         .instrumentCount = config->bindingCount,
-        .requiresMaster = config->requiresMaster};
+        .requiresMaster = config->requiresMaster,
+        .dispatchSamples = config->dispatchSamples};
 
     for (size_t i = 0; i < phase.instrumentCount; i++)
     {
@@ -222,6 +223,15 @@ SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
     }
 
     return SYR_RESULT_SUCCESS;
+}
+
+uint32_t SyrMetronome_GetDispatchSamples(SyrMetronome* metronome,
+    const uint32_t phaseIndex)
+{
+    if (phaseIndex >= (uint32_t)SyrList_Count(metronome->phases))
+        return 0;
+
+    return metronome->phases->dispatchSamples;
 }
 
 void SyrMetronome_Clear(SyrMetronome* metronome)

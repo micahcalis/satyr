@@ -71,17 +71,17 @@ void SyrDescriptor_WriteBuffer(SyrDescriptor* descriptor,
         NULL);
 }
 
-VkDescriptorSetLayout SyrDescriptor_GetLayout(SyrDescriptor* descriptor)
+VkDescriptorSetLayout SyrDescriptor_GetLayout(const SyrDescriptor* descriptor)
 {
     return descriptor->layout;
 }
 
-VkDescriptorSet SyrDescriptor_GetSet(SyrDescriptor* descriptor)
+VkDescriptorSet SyrDescriptor_GetSet(const SyrDescriptor* descriptor)
 {
     return descriptor->set;
 }
 
-uint32_t SyrDescriptor_GetSSBOCount(SyrDescriptor* descriptor)
+uint32_t SyrDescriptor_GetSSBOCount(const SyrDescriptor* descriptor)
 {
     return descriptor->ssboCount;
 }

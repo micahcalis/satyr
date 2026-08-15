@@ -13,6 +13,7 @@ typedef struct SyrSyrinx
     SyrDevice* device;
     SyrAllocator* allocator;
     SyrPipelineCache* pipelineCache;
+    SyrCommandBuffer* commandBuffer;
 } SyrSyrinx;
 
 SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config)
@@ -50,7 +51,15 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     }
 #endif
 
+    syrinx->commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
+
     float notesTest = 23234.f;
+
+    SyrAudioAsset* audioAsset = NULL;
+
+    SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
+        "AudioPaint",
+        &audioAsset);
 
     SyrChordConfig chordConfig = {.name = "testChord",
         .notesData = {
@@ -59,7 +68,8 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         .noteBufferData = &notesTest,
         .instrumentCount = 1,
         .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
-        .kernelIndex = 0};
+        .kernelIndex = 0,
+        .threadGroupSize = SYR_THREAD_GROUP_SIZE_L};
 
     SyrMelodyConfig melodyConfig = {.name = "testMelody",
         .chordConfigs = &chordConfig,
@@ -70,15 +80,11 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
     SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
     metronomeConfig->phaseConfigs[0].bindings[0].instrumentIndex = 0;
     metronomeConfig->phaseConfigs[0].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
+    metronomeConfig->phaseConfigs[0].dispatchSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
+    metronomeConfig->phaseConfigs[0].requiresMaster = true;
 
     SyrMetronome* metronome = NULL;
     SyrMetronome_Initialize(metronomeConfig, &metronome);
-
-    SyrAudioAsset* audioAsset = NULL;
-
-    SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
-        "AudioPaint",
-        &audioAsset);
 
     SyrInstrumentConfig instrumentConfig = {.name = "testInstrument",
         .samples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO)};
@@ -90,9 +96,22 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         .melody = melody,
         .metronome = metronome};
 
+    SyrProducerConfig producerConfig = {.name = "testProducer"};
+    SyrProducer* producer = SyrSyrinx_CreateProducer(syrinx, &producerConfig);
+
+    SyrAlbumConfig albumConfig = {.name = "testAlbum"};
+    SyrAlbum* album = SyrSyrinx_CreateAlbum(syrinx, &albumConfig);
+
     SyrSong* song = SyrSyrinx_CreateSong(syrinx, &songConfig);
 
-    SyrSong_Destroy(song);
+    SyrAlbum_AddSongs(album, &song, 1);
+    const SyrTimelineTicket* ticket = NULL;
+    SyrAlbum_RecordSongs(album, producer, &ticket);
+
+    SyrDevice_WaitIdle(syrinx->device);
+
+    SyrAlbum_Destroy(album);
+    SyrProducer_Destroy(producer);
     SyrMelody_Destroy(melody);
     SyrMetronome_Destroy(metronome);
     SyrAudioAsset_Destroy(audioAsset);
@@ -170,6 +189,7 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
             noteBuffer,
             config->name,
             config->instrumentCount,
+            config->threadGroupSize,
             &chord)
         != SYR_RESULT_SUCCESS)
     {
@@ -303,6 +323,7 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
     if (SyrSong_Initialize(masterBuffer,
             config->melody,
             config->metronome,
+            syrinx->commandBuffer,
             config->name,
             &song)
         != SYR_RESULT_SUCCESS)
@@ -338,8 +359,26 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
     return song;
 }
 
+SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
+    const SyrAlbumConfig* config)
+{
+    SyrAlbum* album = NULL;
+
+    if (SyrAlbum_Initialize(syrinx->commandBuffer,
+            config->name,
+            &album)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Album: %s", config->name);
+        return NULL;
+    }
+
+    return album;
+}
+
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
+    SyrCommandBuffer_Destroy(syrinx->commandBuffer);
     SyrPipelineCache_Destroy(syrinx->pipelineCache);
     SyrAllocator_Destroy(syrinx->allocator);
     SyrDevice_Destroy(syrinx->device);
@@ -351,6 +390,7 @@ void SyrSyrinx_Destroy(SyrSyrinx* syrinx)
     if (syrinx == NULL)
         return;
 
+    SyrDevice_WaitIdle(syrinx->device);
     SyrSyrinx_CleanupVulkan(syrinx);
     free(syrinx);
 }

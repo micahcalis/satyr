@@ -280,6 +280,16 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
     return SYR_RESULT_SUCCESS;
 }
 
+VkPipeline SyrPipeline_GetPipelineHandle(const SyrPipeline* pipeline)
+{
+    return pipeline->pipelineHandle;
+}
+
+VkPipelineLayout SyrPipeline_GetLayout(const SyrPipeline* pipeline)
+{
+    return pipeline->layoutHandle;
+}
+
 void SyrPipeline_Destroy(SyrPipeline* pipeline)
 {
     if (pipeline == NULL)

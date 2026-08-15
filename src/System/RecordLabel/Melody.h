@@ -24,8 +24,9 @@ const char* SyrMelody_GetName(const SyrMelody* melody);
 SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody);
 
 SyrResult SyrMelody_PlayChord(SyrMelody* melody,
+    SyrCommandBuffer* commandBuffer,
     const uint32_t index,
-    SyrCommandBuffer* commandBuffer);
+    const uint32_t dispatchSamples);
 
 void SyrMelody_Destroy(SyrMelody* melody);
 

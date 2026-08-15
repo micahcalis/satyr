@@ -73,7 +73,9 @@ SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody)
     {
         SyrMetronomePhaseConfig phaseConfig = {
             .bindings = NULL,
-            .requiresMaster = false};
+            .requiresMaster = false,
+            .dispatchSamples = 0,
+        };
 
         size_t instrumentCount = SyrChord_GetInstrumentCount(
             SyrMelody_GetChord(melody, (uint32_t)i));
@@ -96,10 +98,47 @@ SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody)
     return metronomeConfig;
 }
 
-SyrResult SyrMelody_PlayChord(SyrMelody* melody,
-    const uint32_t index,
-    SyrCommandBuffer* commandBuffer)
+static uint32_t SyrMelody_GetThreadGroupCount(const uint32_t dispatchSamples, const SyrThreadGroupSize threadGroupSize)
 {
+    const uint32_t groupSize = (uint32_t)threadGroupSize;
+    if (groupSize == 0)
+        return 0;
+
+    return (dispatchSamples + groupSize - 1) / groupSize;
+}
+
+SyrResult SyrMelody_PlayChord(SyrMelody* melody,
+    SyrCommandBuffer* commandBuffer,
+    const uint32_t index,
+    const uint32_t dispatchSamples)
+{
+    SyrChord* chord = SyrMelody_GetChord(melody, index);
+
+    if (chord == NULL)
+    {
+        return SYR_RESULT_FAILED;
+    }
+
+    const SyrPipeline* pipeline = SyrChord_GetPipeline(chord);
+    const SyrDescriptor* descriptor = SyrChord_GetDescriptor(chord);
+
+    SyrCommandBuffer_BindPipeline(commandBuffer, pipeline);
+
+    SyrCommandBuffer_BindDescriptor(commandBuffer,
+        descriptor,
+        pipeline);
+
+    uint32_t threadGroupCount = SyrMelody_GetThreadGroupCount(dispatchSamples,
+        SyrChord_GetThreadGroupSize(chord));
+
+    if (threadGroupCount == 0)
+    {
+        SYR_ERROR("Can't Dispatch Chord Compute Kernel with Thread Group Count 0!");
+        return SYR_RESULT_FAILED;
+    }
+
+    SyrCommandBuffer_Dispatch(commandBuffer, threadGroupCount);
+
     return SYR_RESULT_SUCCESS;
 }
 

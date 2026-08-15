@@ -6,6 +6,7 @@ typedef struct SyrChord
     SyrDescriptor* descriptor;
     SyrNoteBuffer* noteBuffer;
     uint32_t instrumentCount;
+    SyrThreadGroupSize threadGroupSize;
     char name[32];
 } SyrChord;
 
@@ -14,6 +15,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     SyrNoteBuffer* noteBuffer,
     const char name[32],
     const uint32_t instrumentCount,
+    const SyrThreadGroupSize threadGroupSize,
     SyrChord** chord)
 {
     *chord = SYR_NEW(*chord);
@@ -21,6 +23,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     (*chord)->descriptor = descriptor;
     (*chord)->noteBuffer = noteBuffer;
     (*chord)->instrumentCount = instrumentCount;
+    (*chord)->threadGroupSize = threadGroupSize;
     SYR_STR_COPY((*chord)->name, name);
 
     return SYR_RESULT_SUCCESS;
@@ -119,6 +122,21 @@ const char* SyrChord_GetName(const SyrChord* chord)
 uint32_t SyrChord_GetInstrumentCount(const SyrChord* chord)
 {
     return chord->instrumentCount;
+}
+
+SyrThreadGroupSize SyrChord_GetThreadGroupSize(const SyrChord* chord)
+{
+    return chord->threadGroupSize;
+}
+
+const SyrDescriptor* SyrChord_GetDescriptor(const SyrChord* chord)
+{
+    return chord->descriptor;
+}
+
+const SyrPipeline* SyrChord_GetPipeline(const SyrChord* chord)
+{
+    return chord->pipeline;
 }
 
 void SyrChord_Destroy(SyrChord* chord)

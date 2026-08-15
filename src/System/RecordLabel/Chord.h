@@ -11,6 +11,14 @@
 #define SYR_MASTER_TIME_DESCRIPTOR_BINDING 1
 #define SYR_MASTER_FREQUENCY_DESCRIPTOR_BINDING 2
 
+typedef enum
+{
+    SYR_THREAD_GROUP_SIZE_S = 8,
+    SYR_THREAD_GROUP_SIZE_M = 16,
+    SYR_THREAD_GROUP_SIZE_L = 32,
+    SYR_THREAD_GROUP_SIZE_XL = 64
+} SyrThreadGroupSize;
+
 typedef struct SyrChordConfig
 {
     char name[32];
@@ -19,6 +27,7 @@ typedef struct SyrChordConfig
     uint32_t instrumentCount;
     char* shaderPath;
     uint32_t kernelIndex;
+    SyrThreadGroupSize threadGroupSize;
 } SyrChordConfig;
 
 typedef struct SyrChord SyrChord;
@@ -28,6 +37,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     SyrNoteBuffer* noteBuffer,
     const char name[32],
     const uint32_t instrumentCount,
+    const SyrThreadGroupSize threadGroupSize,
     SyrChord** chord);
 
 SyrResult SyrChord_WriteNotes(SyrChord* chord,
@@ -44,4 +54,7 @@ SyrResult SyrChord_WriteInstrument(SyrChord* chord,
 
 const char* SyrChord_GetName(const SyrChord* chord);
 uint32_t SyrChord_GetInstrumentCount(const SyrChord* chord);
+SyrThreadGroupSize SyrChord_GetThreadGroupSize(const SyrChord* chord);
+const SyrDescriptor* SyrChord_GetDescriptor(const SyrChord* chord);
+const SyrPipeline* SyrChord_GetPipeline(const SyrChord* chord);
 void SyrChord_Destroy(SyrChord* chord);

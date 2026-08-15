@@ -12,6 +12,7 @@ typedef struct SyrSong
 SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
     SyrMelody* melody,
     SyrMetronome* metronome,
+    SyrCommandBuffer* commandBuffer,
     const char name[32],
     SyrSong** song)
 {
@@ -42,8 +43,8 @@ void SyrSong_AddInstruments(SyrSong* song, SyrInstrument** instruments, size_t c
 
 static SyrResult SyrSong_PrePlayChord(SyrSong* song,
     SyrChord* chord,
-    const size_t phaseIndex,
-    SyrCommandBuffer* commandBuffer)
+    SyrCommandBuffer* commandBuffer,
+    const size_t phaseIndex)
 {
     if (SyrMetronome_BindPhaseBuffers(song->metronome,
             chord,
@@ -76,12 +77,16 @@ SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
     {
         SyrChord* chord = SyrMelody_GetChord(song->melody, (uint32_t)i);
 
-        if (SyrSong_PrePlayChord(song, chord, i, commandBuffer) != SYR_RESULT_SUCCESS)
+        if (SyrSong_PrePlayChord(song, chord, commandBuffer, i) != SYR_RESULT_SUCCESS)
         {
             return SYR_RESULT_FAILED;
         }
 
-        if (SyrMelody_PlayChord(song->melody, i, commandBuffer) != SYR_RESULT_SUCCESS)
+        if (SyrMelody_PlayChord(song->melody,
+                commandBuffer,
+                (uint32_t)i,
+                SyrMetronome_GetDispatchSamples(song->metronome, i))
+            != SYR_RESULT_SUCCESS)
         {
             SYR_ERROR("Failed to Play Chord for Song (name: %s) with Melody (name: %s), Chord (name: %s)!",
                 song->name,
@@ -93,6 +98,11 @@ SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
     }
 
     return SYR_RESULT_SUCCESS;
+}
+
+const char* SyrSong_GetName(const SyrSong* song)
+{
+    return song->name;
 }
 
 void SyrSong_Destroy(SyrSong* song)

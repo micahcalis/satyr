@@ -72,6 +72,11 @@ SyrResult SyrCommandBuffer_EndSubmit(SyrCommandBuffer* commandBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
+void SyrCommandBuffer_Reset(SyrCommandBuffer* commandBuffer)
+{
+    vkResetCommandBuffer(commandBuffer->commandBufferHandle, 0);
+}
+
 void SyrCommandBuffer_RecordBarrierBatch(SyrCommandBuffer* commandBuffer, const SyrBarrierBatch* barrierBatch)
 {
     if (SyrList_Count(barrierBatch->barrierHandles) == 0)
@@ -90,6 +95,43 @@ void SyrCommandBuffer_RecordBarrierBatch(SyrCommandBuffer* commandBuffer, const 
         barrierBatch->barrierHandles,
         0,
         NULL);
+}
+
+void SyrCommandBuffer_BindDescriptor(SyrCommandBuffer* commandBuffer,
+    const SyrDescriptor* descriptor,
+    const SyrPipeline* pipeline)
+{
+    VkDescriptorSet descriptorSet = SyrDescriptor_GetSet(descriptor);
+
+    vkCmdBindDescriptorSets(commandBuffer->commandBufferHandle,
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        SyrPipeline_GetLayout(pipeline),
+        0,
+        1,
+        &descriptorSet,
+        0,
+        NULL);
+}
+
+void SyrCommandBuffer_BindPipeline(SyrCommandBuffer* commandBuffer, const SyrPipeline* pipeline)
+{
+    vkCmdBindPipeline(commandBuffer->commandBufferHandle,
+        VK_PIPELINE_BIND_POINT_COMPUTE,
+        SyrPipeline_GetPipelineHandle(pipeline));
+}
+
+void SyrCommandBuffer_Dispatch(SyrCommandBuffer* commandBuffer, const uint32_t threadGroupCount)
+{
+    if (threadGroupCount == 0)
+    {
+        SYR_ERROR("Can't Dispatch Compute Kernel with 0 Thread Group Count!");
+        return;
+    }
+
+    vkCmdDispatch(commandBuffer->commandBufferHandle,
+        threadGroupCount,
+        1,
+        1);
 }
 
 void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer)

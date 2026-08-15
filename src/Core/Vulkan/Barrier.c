@@ -83,7 +83,7 @@ void SyrBarrierBatch_AttachBuffer(SyrBarrierBatch* barrierBatch,
 
     VkBufferMemoryBarrier* barrier = &barrierBatch->barrierHandles[index];
     barrier->buffer = buffer->bufferHandle;
-    barrier->size = buffer->info.size;
+    barrier->size = VK_WHOLE_SIZE;
     barrier->offset = buffer->info.offset;
 }
 

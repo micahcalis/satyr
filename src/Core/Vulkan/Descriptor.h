@@ -27,7 +27,7 @@ void SyrDescriptor_WriteBuffer(SyrDescriptor* descriptor,
     const size_t size,
     const size_t offset);
 
-VkDescriptorSetLayout SyrDescriptor_GetLayout(SyrDescriptor* descriptor);
-VkDescriptorSet SyrDescriptor_GetSet(SyrDescriptor* descriptor);
-uint32_t SyrDescriptor_GetSSBOCount(SyrDescriptor* descriptor);
+VkDescriptorSetLayout SyrDescriptor_GetLayout(const SyrDescriptor* descriptor);
+VkDescriptorSet SyrDescriptor_GetSet(const SyrDescriptor* descriptor);
+uint32_t SyrDescriptor_GetSSBOCount(const SyrDescriptor* descriptor);
 void SyrDescriptor_Destroy(SyrDescriptor* descriptor);

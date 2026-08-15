@@ -7,6 +7,7 @@
 #include "System/RecordLabel/Producer.h"
 #include "System/RecordLabel/Instrument.h"
 #include "System/RecordLabel/Song.h"
+#include "System/RecordLabel/Album.h"
 
 typedef struct SyrSyrinx SyrSyrinx;
 
@@ -33,5 +34,8 @@ SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
 
 SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
     const SyrSongConfig* config);
+
+SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
+    const SyrAlbumConfig* config);
 
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);
