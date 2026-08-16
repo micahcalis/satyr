@@ -128,7 +128,7 @@ SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
         SYR_ERROR("Can't start Production, Album (naem: %s) Record Songs Failure!",
             SyrAlbum_GetName(album));
 
-        free(production);
+        SYR_FREE(production);
         return SYR_RESULT_FAILED;
     }
 
@@ -172,7 +172,7 @@ void SyrRecordLabel_Destroy(SyrRecordLabel* recordLabel)
 
     for (size_t i = 0; i < SyrList_Count(recordLabel->activeProductions); i++)
     {
-        free(recordLabel->activeProductions[i]);
+        SYR_FREE(recordLabel->activeProductions[i]);
     }
 
     SyrList_Free(recordLabel->activeProductions);
@@ -191,5 +191,5 @@ void SyrRecordLabel_Destroy(SyrRecordLabel* recordLabel)
 
     SyrList_Free(recordLabel->producers);
 
-    free(recordLabel);
+    SYR_FREE(recordLabel);
 }

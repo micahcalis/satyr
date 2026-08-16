@@ -11,8 +11,8 @@
 
 typedef struct SyrSyrinx SyrSyrinx;
 
-SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config);
-SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config);
+SyrResult SyrSyrinx_Initialize(const SyrConfig* config,
+    SyrSyrinx** syrinx);
 
 SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
     const SyrNotesData notesData);
@@ -38,4 +38,5 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
 SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
     const SyrAlbumConfig* config);
 
+SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx);
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);

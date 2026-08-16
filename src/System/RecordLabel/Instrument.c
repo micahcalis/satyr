@@ -85,7 +85,7 @@ void SyrAudioBuffer_Destroy(SyrAudioBuffer* audioBuffer)
         SyrBufferAllocation_Destroy(audioBuffer->frequencyAllocation);
     }
 
-    free(audioBuffer);
+    SYR_FREE(audioBuffer);
 }
 
 typedef struct SyrInstrument
@@ -177,7 +177,7 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
 
     if (isStereo)
     {
-        free(uploadPcmData);
+        SYR_FREE(uploadPcmData);
     }
 
     if (result != SYR_RESULT_SUCCESS)
@@ -212,5 +212,5 @@ void SyrInstrument_Destroy(SyrInstrument* instrument)
         SyrAudioBuffer_Destroy(instrument->audioBuffer);
     }
 
-    free(instrument);
+    SYR_FREE(instrument);
 }

@@ -80,13 +80,13 @@ static SyrResult SyrVulkInstance_InitializeValidationLayers(SyrVulkInstance* vul
 
         if (!layerFound)
         {
-            free(availableLayers);
+            SYR_FREE(availableLayers);
             SYR_ERROR("Required Layer not found: %s", requiredLayers[i]);
             return SYR_RESULT_VULKAN_FAILED;
         }
     }
 
-    free(availableLayers);
+    SYR_FREE(availableLayers);
     return SYR_RESULT_SUCCESS;
 }
 
@@ -124,13 +124,13 @@ static SyrResult SyrVulkInstance_InitializeExtensionLayers(SyrVulkInstance* vulk
 
         if (!layerFound)
         {
-            free(availableExtensions);
+            SYR_FREE(availableExtensions);
             SYR_ERROR("Required Extension not found: %s", requiredExtensions[i]);
             return SYR_RESULT_VULKAN_FAILED;
         }
     }
 
-    free(availableExtensions);
+    SYR_FREE(availableExtensions);
     return SYR_RESULT_SUCCESS;
 }
 
@@ -251,5 +251,5 @@ void SyrVulkInstance_Destroy(SyrVulkInstance* vulkInstance)
         vkDestroyInstance(vulkInstance->vkInstanceHandle, NULL);
     }
 
-    free(vulkInstance);
+    SYR_FREE(vulkInstance);
 }

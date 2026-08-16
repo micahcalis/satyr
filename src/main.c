@@ -6,18 +6,116 @@ static const SyrConfig SYR_MAIN_CONFIG = {
 
 int main()
 {
-    SyrApplication* app = NULL;
+#if defined(SYR_DEBUG)
+    atexit(Syr_ReportMemoryLeaks);
+#endif
 
-    SyrResult result = SyrApplication_Initialize(&SYR_MAIN_CONFIG, &app);
-
-    if (result == SYR_RESULT_SUCCESS)
+    SyrSyrinx* syrinx = NULL;
+    if (SyrSyrinx_Initialize(&SYR_MAIN_CONFIG, &syrinx) != SYR_RESULT_SUCCESS)
     {
-        SYR_LOG("Satyr initialized succesfully");
-    } else if (result == SYR_RESULT_VULKAN_FAILED)
-    {
-        SYR_ERROR("Satyr Vulkan failed!");
+        return SYR_RESULT_FAILED;
     }
 
-    SyrApplication_Run(app);
-    SyrApplication_Terminate(app);
+    SyrRecordLabel* recordLabel = NULL;
+    if (SyrRecordLabel_Initialize(syrinx, &recordLabel) != SYR_RESULT_SUCCESS)
+    {
+        SyrSyrinx_Destroy(syrinx);
+        return SYR_RESULT_FAILED;
+    }
+
+    SyrAudioAsset* audioAsset = NULL;
+    SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
+        "AudioPaint",
+        &audioAsset);
+
+    float notesTest = 23234.f;
+    SyrChordConfig chordConfig = {
+        .name = "testChord",
+        .notesData = {
+            .name = "testNotesData",
+            .size = sizeof(float)},
+        .noteBufferData = &notesTest,
+        .instrumentCount = 1,
+        .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
+        .kernelIndex = 0,
+        .threadGroupSize = SYR_THREAD_GROUP_SIZE_L};
+
+    SyrMelodyConfig melodyConfig = {
+        .name = "testMelody",
+        .chordConfigs = &chordConfig,
+        .chordCount = 1};
+
+    SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
+
+    SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
+    metronomeConfig->phaseConfigs[0].bindings[0].instrumentIndex = 0;
+    metronomeConfig->phaseConfigs[0].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
+    metronomeConfig->phaseConfigs[0].dispatchSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
+    metronomeConfig->phaseConfigs[0].requiresMaster = true;
+
+    SyrMetronome* metronome = NULL;
+    SyrMetronome_Initialize(metronomeConfig, &metronome);
+
+    SyrInstrumentConfig instrumentConfig = {
+        .name = "testInstrument",
+        .samples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO)};
+
+    SyrSongConfig songConfig = {
+        .name = "testSong",
+        .instrumentConfigs = &instrumentConfig,
+        .instrumentCount = 1,
+        .masterSamples = 1024,
+        .melody = melody,
+        .metronome = metronome};
+
+    SyrSong* song = SyrSyrinx_CreateSong(syrinx, &songConfig);
+
+    SyrProducerConfig producerConfig = {
+        .name = "testProducer",
+        .priority = SYR_PRODUCER_PRIORITY_HIGH};
+    SyrProducer* producer = SyrRecordLabel_NewProducer(recordLabel, &producerConfig);
+
+    SyrAlbumConfig albumConfig = {
+        .name = "testAlbum"};
+    SyrAlbum* album = SyrRecordLabel_NewAlbum(recordLabel, &albumConfig);
+
+    SyrAlbum_AddSongs(album, &song, 1);
+
+    if (SyrRecordLabel_StartProduction(recordLabel, album, producer) == SYR_RESULT_SUCCESS)
+    {
+        SYR_LOG("Production queued for Album: %s", SyrAlbum_GetName(album));
+    }
+
+    SyrPollEvents pollEvents;
+    bool isComplete = false;
+
+    SYR_LOG("Polling production events...");
+    while (!isComplete)
+    {
+        if (SyrRecordLabel_PollEvents(recordLabel, &pollEvents) == SYR_RESULT_SUCCESS)
+        {
+            for (uint32_t i = 0; i < pollEvents.count; i++)
+            {
+                const SyrProductionEvent* event = &pollEvents.events[i];
+
+                if (event->state == SYR_PRODUCTION_STATE_RECORDED)
+                {
+                    SYR_LOG("Album '%s' finished recording on GPU timeline!",
+                        SyrAlbum_GetName(event->production->album));
+                    isComplete = true;
+                }
+            }
+        }
+    }
+
+    SyrDevice_WaitIdle(SyrSyrinx_GetDevice(syrinx));
+
+    SyrMelody_Destroy(melody);
+    SyrMetronome_Destroy(metronome);
+    SyrAudioAsset_Destroy(audioAsset);
+
+    SyrRecordLabel_Destroy(recordLabel);
+    SyrSyrinx_Destroy(syrinx);
+
+    return SYR_RESULT_SUCCESS;
 }

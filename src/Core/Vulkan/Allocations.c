@@ -76,5 +76,5 @@ void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation)
         vmaDestroyBuffer(allocation->allocator, allocation->bufferHandle, allocation->allocation);
     }
 
-    free(allocation);
+    SYR_FREE(allocation);
 }

@@ -65,5 +65,5 @@ void SyrNoteBuffer_Destroy(SyrNoteBuffer* noteBuffer)
         SyrBufferAllocation_Destroy(noteBuffer->bufferAllocation);
     }
 
-    free(noteBuffer);
+    SYR_FREE(noteBuffer);
 }

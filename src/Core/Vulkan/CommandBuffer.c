@@ -147,5 +147,5 @@ void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer)
             &commandBuffer->commandBufferHandle);
     }
 
-    free(commandBuffer);
+    SYR_FREE(commandBuffer);
 }

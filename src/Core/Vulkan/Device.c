@@ -35,7 +35,7 @@ static uint32_t GetComputeQueueFamilyIndex(VkPhysicalDevice physicalDevice)
         }
     }
 
-    free(queueFamilies);
+    SYR_FREE(queueFamilies);
 
     return computeQueueFamilyIndex;
 }
@@ -149,7 +149,7 @@ static SyrResult SyrDevice_PickPhysicalDevice(SyrDevice* device,
     if (!hasCompatibleDevice)
     {
         SYR_ERROR("No Physical Devices Compatible with Saytr!");
-        free(physicalDevices);
+        SYR_FREE(physicalDevices);
         return SYR_RESULT_VULKAN_FAILED;
     }
 
@@ -161,7 +161,7 @@ static SyrResult SyrDevice_PickPhysicalDevice(SyrDevice* device,
     vkGetPhysicalDeviceProperties(device->physicalDevice, &deviceProperties);
     SYR_LOG("Best Physical Device: %s", deviceProperties.deviceName);
 
-    free(physicalDevices);
+    SYR_FREE(physicalDevices);
     return SYR_RESULT_SUCCESS;
 }
 
@@ -183,7 +183,7 @@ static SyrResult SyrDevice_CreateLogicalDevice(SyrDevice* device)
     vkGetPhysicalDeviceQueueFamilyProperties(device->physicalDevice, &queueFamilyCount, queueFamilies);
 
     uint32_t availableQueues = queueFamilies[device->computeQueueFamilyIndex].queueCount;
-    free(queueFamilies);
+    SYR_FREE(queueFamilies);
 
     uint32_t requestedQueueCount = SYR_QUEUE_PRIORITY_LEVELS;
     if (requestedQueueCount > availableQueues)
@@ -308,5 +308,5 @@ void SyrDevice_Destroy(SyrDevice* device)
         vkDestroyDevice(device->logicalDevice, NULL);
     }
 
-    free(device);
+    SYR_FREE(device);
 }

@@ -110,5 +110,5 @@ void SyrTimelineSemaphore_Destroy(SyrTimelineSemaphore* timelineSemaphore)
             NULL);
     }
 
-    free(timelineSemaphore);
+    SYR_FREE(timelineSemaphore);
 }

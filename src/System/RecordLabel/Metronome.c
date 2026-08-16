@@ -255,7 +255,7 @@ void SyrMetronome_Destroy(SyrMetronome* metronome)
         SyrList_Free(metronome->phases);
     }
 
-    free(metronome);
+    SYR_FREE(metronome);
 }
 
 void SyrMetronomeConfig_Destroy(SyrMetronomeConfig* metronomeConfig)
@@ -269,5 +269,5 @@ void SyrMetronomeConfig_Destroy(SyrMetronomeConfig* metronomeConfig)
     }
 
     SyrList_Free(metronomeConfig->phaseConfigs);
-    free(metronomeConfig);
+    SYR_FREE(metronomeConfig);
 }

@@ -124,6 +124,6 @@ void SyrSong_Destroy(SyrSong* song)
         SyrList_Free(song->instruments);
     }
 
-    free(song);
+    SYR_FREE(song);
 }
 

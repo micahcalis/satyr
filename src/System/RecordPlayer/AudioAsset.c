@@ -112,8 +112,8 @@ void SyrAudioAsset_Destroy(SyrAudioAsset* audioAsset)
 
     if (audioAsset->pcmData != NULL)
     {
-        free(audioAsset->pcmData);
+        SYR_FREE(audioAsset->pcmData);
     }
 
-    free(audioAsset);
+    SYR_FREE(audioAsset);
 }

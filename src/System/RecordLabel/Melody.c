@@ -157,5 +157,5 @@ void SyrMelody_Destroy(SyrMelody* melody)
         SyrList_Free(melody->chords);
     }
 
-    free(melody);
+    SYR_FREE(melody);
 }

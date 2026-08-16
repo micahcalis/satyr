@@ -97,5 +97,5 @@ void SyrBarrierBatch_Destroy(SyrBarrierBatch* barrierBatch)
         SyrList_Free(barrierBatch->barrierHandles);
     }
 
-    free(barrierBatch);
+    SYR_FREE(barrierBatch);
 }

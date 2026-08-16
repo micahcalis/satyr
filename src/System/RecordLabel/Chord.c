@@ -159,5 +159,5 @@ void SyrChord_Destroy(SyrChord* chord)
         SyrNoteBuffer_Destroy(chord->noteBuffer);
     }
 
-    free(chord);
+    SYR_FREE(chord);
 }

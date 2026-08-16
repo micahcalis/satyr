@@ -87,5 +87,5 @@ void SyrProducer_Destroy(SyrProducer* producer)
         SyrCommandPool_Destroy(producer->commandPool);
     }
 
-    free(producer);
+    SYR_FREE(producer);
 }

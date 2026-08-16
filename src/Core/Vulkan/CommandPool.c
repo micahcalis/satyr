@@ -94,5 +94,5 @@ void SyrCommandPool_Destroy(SyrCommandPool* commandPool)
             NULL);
     }
 
-    free(commandPool);
+    SYR_FREE(commandPool);
 }

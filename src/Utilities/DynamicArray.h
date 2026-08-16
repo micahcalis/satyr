@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <string.h>
+#include "Utilities/SatyrDebug.h"
 
 typedef struct SyrListHeader
 {
@@ -13,23 +14,23 @@ typedef struct SyrListHeader
 #define SyrList_Count(l) ((l) ? SyrList_Header(l)->count : 0)
 #define SyrList_Capacity(l) ((l) ? SyrList_Header(l)->capacity : 0)
 
-#define SyrList_Free(l)              \
-    do                               \
-    {                                \
-        if (l)                       \
-        {                            \
-            free(SyrList_Header(l)); \
-            (l) = NULL;              \
-        }                            \
+#define SyrList_Free(l)                  \
+    do                                   \
+    {                                    \
+        if (l)                           \
+        {                                \
+            SYR_FREE(SyrList_Header(l)); \
+            (l) = NULL;                  \
+        }                                \
     } while (0)
 
-#define SyrList_Reserve(l, capacity)                                  \
-    do                                                                \
-    {                                                                 \
-        if (SyrList_Capacity(l) < (capacity))                         \
-        {                                                             \
-            (l) = SyrList_SetCapacity((l), (capacity), sizeof(*(l))); \
-        }                                                             \
+#define SyrList_Reserve(l, capacity)                                                      \
+    do                                                                                    \
+    {                                                                                     \
+        if (SyrList_Capacity(l) < (capacity))                                             \
+        {                                                                                 \
+            (l) = SyrList_SetCapacity((l), (capacity), sizeof(*(l)), __FILE__, __LINE__); \
+        }                                                                                 \
     } while (0)
 
 #define SyrList_Push(l, value)                     \
@@ -51,9 +52,9 @@ typedef struct SyrListHeader
         }                                                                            \
     } while (0)
 
-#define SyrList_MayGrow(l, n)                                            \
-    (((l) == NULL || SyrList_Count(l) + (n) > SyrList_Capacity(l))       \
-            ? ((l) = SyrList_GrowImplementation((l), (n), sizeof(*(l)))) \
+#define SyrList_MayGrow(l, n)                                                                \
+    (((l) == NULL || SyrList_Count(l) + (n) > SyrList_Capacity(l))                           \
+            ? ((l) = SyrList_GrowImplementation((l), (n), sizeof(*(l)), __FILE__, __LINE__)) \
             : 0)
 
 #define SyrList_Clear(l)                  \
@@ -65,28 +66,28 @@ typedef struct SyrListHeader
         }                                 \
     } while (0)
 
-static inline void* SyrList_SetCapacity(void* list, size_t new_cap, size_t item_size)
+static inline void* SyrList_SetCapacity(void* list, size_t new_cap, size_t item_size, const char* file, int line)
 {
     if (new_cap == 0)
         return list;
 
     size_t total_size = sizeof(SyrListHeader) + new_cap * item_size;
-    SyrListHeader* header = NULL;
+    SyrListHeader* old_header = list ? SyrList_Header(list) : NULL;
 
-    if (list)
+    SyrListHeader* new_header = (SyrListHeader*)SYR_REALLOC_DBG(old_header, total_size, file, line);
+    if (!new_header)
+        return list;
+
+    if (!list)
     {
-        header = (SyrListHeader*)realloc(SyrList_Header(list), total_size);
-    } else
-    {
-        header = (SyrListHeader*)malloc(total_size);
-        header->count = 0;
+        new_header->count = 0;
     }
 
-    header->capacity = new_cap;
-    return (void*)(header + 1);
+    new_header->capacity = new_cap;
+    return (void*)(new_header + 1);
 }
 
-static inline void* SyrList_GrowImplementation(void* list, size_t increment, size_t item_size)
+static inline void* SyrList_GrowImplementation(void* list, size_t increment, size_t item_size, const char* file, int line)
 {
     size_t double_cap = list ? SyrList_Capacity(list) * 2 : 0;
     size_t min_cap = SyrList_Count(list) + increment;
@@ -94,5 +95,5 @@ static inline void* SyrList_GrowImplementation(void* list, size_t increment, siz
     if (new_cap < 8)
         new_cap = 8;
 
-    return SyrList_SetCapacity(list, new_cap, item_size);
+    return SyrList_SetCapacity(list, new_cap, item_size, file, line);
 }

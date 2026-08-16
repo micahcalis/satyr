@@ -1,19 +1,10 @@
 #pragma once
 
-#pragma once
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include "vulkan/vulkan.h"
-#include "System/Utilities/DynamicArray.h"
-
-#define SYR_LOG(format, ...) printf("[Satyr] " format "\n", ##__VA_ARGS__)
-#define SYR_ERROR(format, ...) fprintf(stderr, "[Satyr Error] " format "\n", ##__VA_ARGS__)
-#define SYR_ALLOC(type) calloc(1, sizeof(type))
-#define SYR_NEW(ptr) calloc(1, sizeof(*(ptr)))
-#define SYR_ALLOC_ARRAY(type, count) calloc((count), sizeof(type))
-#define SYR_STR_COPY(dest, src) strncpy_s(dest, sizeof(dest), src, sizeof(dest) - 1)
 
 typedef enum
 {
@@ -35,3 +26,9 @@ typedef struct SyrConfig
 // Implementation Settings (REMOVE ON RELEASE)
 
 #define SYR_ENABLE_VULKAN_PIPELINE_CACHE
+#define SYR_DEBUG
+
+#include "Utilities/SatyrDebug.h"
+#include "Utilities/DynamicArray.h"
+
+#define SYR_STR_COPY(dest, src) strncpy_s(dest, sizeof(dest), src, sizeof(dest) - 1)

@@ -101,5 +101,5 @@ void SyrDescriptor_Destroy(SyrDescriptor* descriptor)
         vkDestroyDescriptorSetLayout(descriptor->device, descriptor->layout, NULL);
     }
 
-    free(descriptor);
+    SYR_FREE(descriptor);
 }

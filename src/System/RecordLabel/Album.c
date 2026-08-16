@@ -88,5 +88,5 @@ void SyrAlbum_Destroy(SyrAlbum* album)
     }
 
     SyrList_Free(album->songs);
-    free(album);
+    SYR_FREE(album);
 }

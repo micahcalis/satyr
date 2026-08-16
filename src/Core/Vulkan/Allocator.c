@@ -229,5 +229,5 @@ void SyrAllocator_Destroy(SyrAllocator* allocator)
             NULL);
     }
 
-    free(allocator);
+    SYR_FREE(allocator);
 }
