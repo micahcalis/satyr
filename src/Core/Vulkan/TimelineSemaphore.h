@@ -9,7 +9,7 @@ typedef struct SyrTimelineSemaphore SyrTimelineSemaphore;
 
 typedef struct SyrTimelineTicket
 {
-    char name[64];
+    char name[70];
     uint64_t id;
 } SyrTimelineTicket;
 

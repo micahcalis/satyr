@@ -5,7 +5,7 @@ typedef struct SyrDevice
 {
     VkPhysicalDevice physicalDevice;
     VkDevice logicalDevice;
-    VkQueue computeQueue;
+    VkQueue computeQueues[SYR_QUEUE_PRIORITY_LEVELS];
     uint32_t computeQueueFamilyIndex;
 } SyrDevice;
 
@@ -165,7 +165,9 @@ static SyrResult SyrDevice_PickPhysicalDevice(SyrDevice* device,
     return SYR_RESULT_SUCCESS;
 }
 
-static const float SYR_MAIN_QUEUE_FAMILY_PRIO = 1.0f;
+static const float SYR_QUEUE_PRIORITY_LOW = 0.0f;
+static const float SYR_QUEUE_PRIORITY_MEDIUM = 0.5f;
+static const float SYR_QUEUE_PRIORITY_HIGH = 1.0f;
 
 static SyrResult SyrDevice_CreateLogicalDevice(SyrDevice* device)
 {
@@ -174,8 +176,29 @@ static SyrResult SyrDevice_CreateLogicalDevice(SyrDevice* device)
     VkDeviceQueueCreateInfo queueCreateInfo = {0};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
     queueCreateInfo.queueFamilyIndex = device->computeQueueFamilyIndex;
-    queueCreateInfo.queueCount = 1;
-    queueCreateInfo.pQueuePriorities = &SYR_MAIN_QUEUE_FAMILY_PRIO;
+
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device->physicalDevice, &queueFamilyCount, NULL);
+    VkQueueFamilyProperties* queueFamilies = SYR_ALLOC_ARRAY(VkQueueFamilyProperties, queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(device->physicalDevice, &queueFamilyCount, queueFamilies);
+
+    uint32_t availableQueues = queueFamilies[device->computeQueueFamilyIndex].queueCount;
+    free(queueFamilies);
+
+    uint32_t requestedQueueCount = SYR_QUEUE_PRIORITY_LEVELS;
+    if (requestedQueueCount > availableQueues)
+    {
+        requestedQueueCount = availableQueues;
+    }
+
+    queueCreateInfo.queueCount = requestedQueueCount;
+
+    float queuePriorities[SYR_QUEUE_PRIORITY_LEVELS] = {
+        SYR_QUEUE_PRIORITY_HIGH,
+        SYR_QUEUE_PRIORITY_MEDIUM,
+        SYR_QUEUE_PRIORITY_LOW};
+
+    queueCreateInfo.pQueuePriorities = queuePriorities;
 
     VkPhysicalDeviceVulkan12Features vulkan12Features = {0};
     vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -208,10 +231,15 @@ static SyrResult SyrDevice_CreateLogicalDevice(SyrDevice* device)
         return SYR_RESULT_VULKAN_FAILED;
     }
 
-    vkGetDeviceQueue(device->logicalDevice,
-        device->computeQueueFamilyIndex,
-        0,
-        &device->computeQueue);
+    for (uint32_t i = 0; i < requestedQueueCount; i++)
+    {
+        vkGetDeviceQueue(device->logicalDevice, device->computeQueueFamilyIndex, i, &device->computeQueues[i]);
+    }
+
+    for (uint32_t i = requestedQueueCount; i < SYR_QUEUE_PRIORITY_LEVELS; i++)
+    {
+        device->computeQueues[i] = device->computeQueues[0];
+    }
 
     return SYR_RESULT_SUCCESS;
 }
@@ -260,9 +288,9 @@ uint32_t SyrDevice_GetComputeFamilyIndex(SyrDevice* device)
     return device->computeQueueFamilyIndex;
 }
 
-VkQueue SyrDevice_GetComputeQueue(SyrDevice* device)
+VkQueue SyrDevice_GetComputeQueue(SyrDevice* device, const SyrQueuePriorityLevel level)
 {
-    return device->computeQueue;
+    return device->computeQueues[(uint32_t)level];
 }
 
 void SyrDevice_WaitIdle(SyrDevice* device)

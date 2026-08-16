@@ -13,7 +13,6 @@ typedef struct SyrSyrinx
     SyrDevice* device;
     SyrAllocator* allocator;
     SyrPipelineCache* pipelineCache;
-    SyrCommandBuffer* commandBuffer;
 } SyrSyrinx;
 
 SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config)
@@ -50,8 +49,6 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         }
     }
 #endif
-
-    syrinx->commandBuffer = SyrAllocator_AllocateCommandBuffer(syrinx->allocator);
 
     float notesTest = 23234.f;
 
@@ -96,7 +93,7 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
         .melody = melody,
         .metronome = metronome};
 
-    SyrProducerConfig producerConfig = {.name = "testProducer"};
+    SyrProducerConfig producerConfig = {.name = "testProducer", .priority = SYR_PRODUCER_PRIORITY_HIGH};
     SyrProducer* producer = SyrSyrinx_CreateProducer(syrinx, &producerConfig);
 
     SyrAlbumConfig albumConfig = {.name = "testAlbum"};
@@ -106,7 +103,7 @@ SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config)
 
     SyrAlbum_AddSongs(album, &song, 1);
     const SyrTimelineTicket* ticket = NULL;
-    SyrAlbum_RecordSongs(album, producer, &ticket);
+    // SyrAlbum_RecordSongs(album, producer, &ticket);
 
     SyrDevice_WaitIdle(syrinx->device);
 
@@ -255,9 +252,27 @@ SyrProducer* SyrSyrinx_CreateProducer(SyrSyrinx* syrinx,
         return NULL;
     }
 
+    SyrCommandPool* commandPool = NULL;
+
+    if (SyrCommandPool_Initialize(SyrDevice_GetLogicalDeviceHandle(syrinx->device),
+            SyrDevice_GetComputeQueue(syrinx->device, (SyrQueuePriorityLevel)config->priority),
+            SyrDevice_GetComputeFamilyIndex(syrinx->device),
+            &commandPool)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create Command Pool for Producer: %s!", config->name);
+        SyrTimelineSemaphore_Destroy(timelineSemaphore);
+        return NULL;
+    }
+
     SyrProducer* producer = NULL;
 
-    if (SyrProducer_Initialize(timelineSemaphore, config->name, &producer) != SYR_RESULT_SUCCESS)
+    if (SyrProducer_Initialize(commandPool,
+            timelineSemaphore,
+            config->priority,
+            config->name,
+            &producer)
+        != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Failed to create Producer: %s!", config->name);
         return NULL;
@@ -323,7 +338,6 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
     if (SyrSong_Initialize(masterBuffer,
             config->melody,
             config->metronome,
-            syrinx->commandBuffer,
             config->name,
             &song)
         != SYR_RESULT_SUCCESS)
@@ -364,8 +378,7 @@ SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
 {
     SyrAlbum* album = NULL;
 
-    if (SyrAlbum_Initialize(syrinx->commandBuffer,
-            config->name,
+    if (SyrAlbum_Initialize(config->name,
             &album)
         != SYR_RESULT_SUCCESS)
     {
@@ -378,7 +391,6 @@ SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
 
 static void SyrSyrinx_CleanupVulkan(SyrSyrinx* syrinx)
 {
-    SyrCommandBuffer_Destroy(syrinx->commandBuffer);
     SyrPipelineCache_Destroy(syrinx->pipelineCache);
     SyrAllocator_Destroy(syrinx->allocator);
     SyrDevice_Destroy(syrinx->device);

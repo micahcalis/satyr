@@ -4,9 +4,7 @@ typedef struct SyrAllocator
 {
     VmaAllocator vmaHandle;
     VkDevice device;
-    VkQueue computeQueue;
     VkDescriptorPool descriptorPool;
-    VkCommandPool commandPool;
 } SyrAllocator;
 
 static SyrResult SyrAllocator_CreateAllocator(SyrAllocator* allocator,
@@ -58,27 +56,6 @@ static SyrResult SyrAllocator_CreateDescriptorPool(SyrAllocator* allocator)
     return SYR_RESULT_SUCCESS;
 }
 
-static SyrResult SyrAllocator_CreateCommandPool(SyrAllocator* allocator,
-    const uint32_t computeFamilyIndex)
-{
-    VkCommandPoolCreateInfo createInfo = {0};
-    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    createInfo.queueFamilyIndex = computeFamilyIndex;
-
-    if (vkCreateCommandPool(allocator->device,
-            &createInfo,
-            NULL,
-            &allocator->commandPool)
-        != VK_SUCCESS)
-    {
-        SYR_ERROR("Failed to create Vulkan Command Pool!");
-        return SYR_RESULT_VULKAN_FAILED;
-    }
-
-    return SYR_RESULT_SUCCESS;
-}
-
 SyrResult SyrAllocator_Initialize(const SyrConfig* config,
     SyrVulkInstance* vulkInstance,
     SyrDevice* device,
@@ -92,7 +69,8 @@ SyrResult SyrAllocator_Initialize(const SyrConfig* config,
 
     *allocator = SYR_NEW(*allocator);
     (*allocator)->device = SyrDevice_GetLogicalDeviceHandle(device);
-    (*allocator)->computeQueue = SyrDevice_GetComputeQueue(device);
+    (*allocator)->vmaHandle = VK_NULL_HANDLE;
+    (*allocator)->descriptorPool = VK_NULL_HANDLE;
 
     if (SyrAllocator_CreateAllocator(*allocator, vulkInstance, device) == SYR_RESULT_VULKAN_FAILED)
     {
@@ -102,13 +80,6 @@ SyrResult SyrAllocator_Initialize(const SyrConfig* config,
     }
 
     if (SyrAllocator_CreateDescriptorPool(*allocator) == SYR_RESULT_VULKAN_FAILED)
-    {
-        SyrAllocator_Destroy(*allocator);
-        *allocator = NULL;
-        return SYR_RESULT_VULKAN_FAILED;
-    }
-
-    if (SyrAllocator_CreateCommandPool(*allocator, SyrDevice_GetComputeFamilyIndex(device)) == SYR_RESULT_VULKAN_FAILED)
     {
         SyrAllocator_Destroy(*allocator);
         *allocator = NULL;
@@ -236,41 +207,6 @@ SyrDescriptor* SyrAllocator_AllocateDescriptor(const uint32_t ssboCount,
     return descriptor;
 }
 
-SyrCommandBuffer* SyrAllocator_AllocateCommandBuffer(SyrAllocator* allocator)
-{
-    VkCommandBufferAllocateInfo createInfo = {0};
-    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    createInfo.commandPool = allocator->commandPool;
-    createInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    createInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBufferHandle = VK_NULL_HANDLE;
-
-    if (vkAllocateCommandBuffers(allocator->device,
-            &createInfo,
-            &commandBufferHandle)
-        != VK_SUCCESS)
-    {
-        SYR_ERROR("Failed to allocate Command Buffer from Pool");
-        return NULL;
-    }
-
-    SyrCommandBuffer* commandBuffer = NULL;
-
-    if (SyrCommandBuffer_Initialize(commandBufferHandle,
-            allocator->commandPool,
-            allocator->device,
-            allocator->computeQueue,
-            &commandBuffer)
-        != SYR_RESULT_SUCCESS)
-    {
-        SYR_ERROR("Failed to initialize Satyr Command Buffer Object");
-        return NULL;
-    }
-
-    return commandBuffer;
-}
-
 VmaAllocator SyrAllocator_GetAllocatorHandle(SyrAllocator* allocator)
 {
     return allocator->vmaHandle;
@@ -290,13 +226,6 @@ void SyrAllocator_Destroy(SyrAllocator* allocator)
     {
         vkDestroyDescriptorPool(allocator->device,
             allocator->descriptorPool,
-            NULL);
-    }
-
-    if (allocator->commandPool != VK_NULL_HANDLE)
-    {
-        vkDestroyCommandPool(allocator->device,
-            allocator->commandPool,
             NULL);
     }
 

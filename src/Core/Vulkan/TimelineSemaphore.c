@@ -50,7 +50,7 @@ SyrResult SyrTimelineSemaphore_Initialize(SyrDevice* device,
     return SYR_RESULT_SUCCESS;
 }
 
-SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timelineSemaphore, char name[64])
+SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timelineSemaphore, char name[70])
 {
     timelineSemaphore->ticketCounter++;
 
