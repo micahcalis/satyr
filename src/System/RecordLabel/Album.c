@@ -2,17 +2,14 @@
 
 typedef struct SyrAlbum
 {
-    SyrCommandBuffer* commandBuffer;
     SyrList(SyrSong*) songs;
     char name[32];
 } SyrAlbum;
 
-SyrResult SyrAlbum_Initialize(SyrCommandBuffer* commandBuffer,
-    const char name[32],
+SyrResult SyrAlbum_Initialize(const char name[32],
     SyrAlbum** album)
 {
     (*album) = SYR_NEW(*album);
-    (*album)->commandBuffer = commandBuffer;
     (*album)->songs = NULL;
     SYR_STR_COPY((*album)->name, name);
 
@@ -29,9 +26,11 @@ void SyrAlbum_AddSongs(SyrAlbum* album, SyrSong** songs, const size_t count)
 
 SyrResult SyrAlbum_RecordSongs(SyrAlbum* album,
     SyrProducer* producer,
-    const SyrTimelineTicket** timelineTicket)
+    SyrTimelineTicket* timelineTicket)
 {
-    if (SyrCommandBuffer_Begin(album->commandBuffer) != SYR_RESULT_SUCCESS)
+    SyrCommandBuffer* commandBuffer = SyrProducer_GetCommandBuffer(producer);
+
+    if (SyrCommandBuffer_Begin(commandBuffer) != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Failed to Begin CommandBuffer for Album: %s", album->name);
         return SYR_RESULT_FAILED;
@@ -39,25 +38,27 @@ SyrResult SyrAlbum_RecordSongs(SyrAlbum* album,
 
     for (size_t i = 0; i < SyrList_Count(album->songs); i++)
     {
-        if (SyrSong_Record(album->songs[i], album->commandBuffer) != SYR_RESULT_SUCCESS)
+        if (SyrSong_Record(album->songs[i], commandBuffer) != SYR_RESULT_SUCCESS)
         {
             SYR_ERROR("Failed to Record Song (name: %s), for Album (name: %s)",
                 SyrSong_GetName(album->songs[i]),
                 album->name);
 
-            SyrCommandBuffer_Reset(album->commandBuffer);
+            SyrCommandBuffer_Reset(commandBuffer);
             return SYR_RESULT_FAILED;
         }
     }
 
     *timelineTicket = SyrProducer_NewReleaseTicket(producer, album->name);
 
-    if (SyrCommandBuffer_EndSubmit(album->commandBuffer,
+    if (SyrCommandBuffer_EndSubmit(commandBuffer,
             SyrProducer_GetTimelineSemaphore(producer),
-            *timelineTicket)
+            timelineTicket)
         != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Failed to End & Submit CommandBuffer for Album: %s", album->name);
+        SyrCommandBuffer_Reset(commandBuffer);
+        timelineTicket->id = SYR_INVALID_TICKET_ID;
         return SYR_RESULT_FAILED;
     }
 
@@ -69,6 +70,11 @@ SyrResult SyrAlbum_Release(SyrAlbum* album);
 void SyrAlbum_Reset(SyrAlbum* album)
 {
     SyrList_Clear(album->songs);
+}
+
+const char* SyrAlbum_GetName(const SyrAlbum* album)
+{
+    return album->name;
 }
 
 void SyrAlbum_Destroy(SyrAlbum* album)

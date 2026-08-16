@@ -12,7 +12,6 @@ typedef struct SyrSong
 SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
     SyrMelody* melody,
     SyrMetronome* metronome,
-    SyrCommandBuffer* commandBuffer,
     const char name[32],
     SyrSong** song)
 {

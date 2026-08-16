@@ -3,6 +3,7 @@
 #include "Core/SatyrCore.h"
 #include "System/RecordLabel/Instrument.h"
 #include "System/RecordLabel/Chord.h"
+#include "Core/Vulkan/CommandBuffer.h"
 
 typedef struct SyrInstrumentBinding
 {

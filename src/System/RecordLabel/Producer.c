@@ -2,20 +2,33 @@
 
 typedef struct SyrProducer
 {
+    SyrCommandPool* commandPool;
+    SyrCommandBuffer* commandBuffer;
     SyrTimelineSemaphore* timelineSemaphore;
-    SyrTimelineTicket timelineTicket;
+    SyrProducerPriority priority;
     char name[32];
 } SyrProducer;
 
-SyrResult SyrProducer_Initialize(SyrTimelineSemaphore* timelineSemaphore,
+SyrResult SyrProducer_Initialize(SyrCommandPool* commandPool,
+    SyrTimelineSemaphore* timelineSemaphore,
+    SyrProducerPriority priority,
     const char name[32],
     SyrProducer** producer)
 {
     (*producer) = SYR_NEW(*producer);
+    (*producer)->commandPool = commandPool;
     (*producer)->timelineSemaphore = timelineSemaphore;
-    (*producer)->timelineTicket.id = SYR_INVALID_TICKET_ID;
-    (*producer)->timelineTicket.name[0] = '\0';
+    (*producer)->priority = priority;
     SYR_STR_COPY((*producer)->name, name);
+
+    (*producer)->commandBuffer = SyrCommandPool_AllocateCommandBuffer(commandPool);
+
+    if ((*producer)->commandBuffer == NULL)
+    {
+        SyrProducer_Destroy(*producer);
+        *producer = NULL;
+        return SYR_RESULT_FAILED;
+    }
 
     return SYR_RESULT_SUCCESS;
 }
@@ -25,18 +38,33 @@ void SyrProducer_Update(SyrProducer* producer)
     SyrTimelineSemaphore_UpdateSemaphoreCounter(producer->timelineSemaphore);
 }
 
-const SyrTimelineTicket* SyrProducer_NewReleaseTicket(SyrProducer* producer, const char albumName[32])
+const SyrTimelineTicket SyrProducer_NewReleaseTicket(SyrProducer* producer, const char albumName[32])
 {
-    char releaseName[64];
+    char releaseName[70];
     snprintf(releaseName, sizeof(releaseName), "%s - %s", albumName, producer->name);
-    producer->timelineTicket = SyrTimelineSemaphore_AssignTicket(producer->timelineSemaphore, releaseName);
+    SyrTimelineTicket timelineTicket = SyrTimelineSemaphore_AssignTicket(producer->timelineSemaphore, releaseName);
 
-    return &producer->timelineTicket;
+    return timelineTicket;
+}
+
+SyrCommandBuffer* SyrProducer_GetCommandBuffer(SyrProducer* producer)
+{
+    return producer->commandBuffer;
 }
 
 SyrTimelineSemaphore* SyrProducer_GetTimelineSemaphore(SyrProducer* producer)
 {
     return producer->timelineSemaphore;
+}
+
+bool SyrProducer_IsTicketComplete(SyrProducer* producer, const SyrTimelineTicket* ticket)
+{
+    return SyrTimelineSemaphore_IsTicketComplete(producer->timelineSemaphore, ticket);
+}
+
+const char* SyrProducer_GetName(const SyrProducer* producer)
+{
+    return producer->name;
 }
 
 void SyrProducer_Destroy(SyrProducer* producer)
@@ -47,6 +75,16 @@ void SyrProducer_Destroy(SyrProducer* producer)
     if (producer->timelineSemaphore != NULL)
     {
         SyrTimelineSemaphore_Destroy(producer->timelineSemaphore);
+    }
+
+    if (producer->commandBuffer != NULL)
+    {
+        SyrCommandBuffer_Destroy(producer->commandBuffer);
+    }
+
+    if (producer->commandPool != NULL)
+    {
+        SyrCommandPool_Destroy(producer->commandPool);
     }
 
     free(producer);
