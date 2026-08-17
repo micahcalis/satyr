@@ -34,17 +34,54 @@ SyrResult SyrDescriptor_Initialize(VkDescriptorSetLayout layout,
     return SYR_RESULT_SUCCESS;
 }
 
-VkDescriptorSetLayout SyrDescriptor_GetLayout(SyrDescriptor* descriptor)
+static VkDescriptorType SyrDescriptor_GetDescriptorType(const SyrBufferType bufferType)
+{
+    switch (bufferType)
+    {
+    case SYR_BUFFER_TYPE_UNIFORM: return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    case SYR_BUFFER_TYPE_SSBO: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    }
+}
+
+void SyrDescriptor_WriteBuffer(SyrDescriptor* descriptor,
+    SyrBufferAllocation* bufferAllocation,
+    const uint32_t binding,
+    const SyrBufferType bufferType,
+    const size_t size,
+    const size_t offset)
+{
+    VkDescriptorBufferInfo bufferInfo = {0};
+    bufferInfo.buffer = bufferAllocation->bufferHandle;
+    bufferInfo.offset = offset;
+    bufferInfo.range = VK_WHOLE_SIZE;
+
+    VkWriteDescriptorSet descriptorWrite = {0};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = descriptor->set;
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = SyrDescriptor_GetDescriptorType(bufferType);
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(descriptor->device,
+        1,
+        &descriptorWrite,
+        0,
+        NULL);
+}
+
+VkDescriptorSetLayout SyrDescriptor_GetLayout(const SyrDescriptor* descriptor)
 {
     return descriptor->layout;
 }
 
-VkDescriptorSet SyrDescriptor_GetSet(SyrDescriptor* descriptor)
+VkDescriptorSet SyrDescriptor_GetSet(const SyrDescriptor* descriptor)
 {
     return descriptor->set;
 }
 
-uint32_t SyrDescriptor_GetSSBOCount(SyrDescriptor* descriptor)
+uint32_t SyrDescriptor_GetSSBOCount(const SyrDescriptor* descriptor)
 {
     return descriptor->ssboCount;
 }
@@ -64,5 +101,5 @@ void SyrDescriptor_Destroy(SyrDescriptor* descriptor)
         vkDestroyDescriptorSetLayout(descriptor->device, descriptor->layout, NULL);
     }
 
-    free(descriptor);
+    SYR_FREE(descriptor);
 }

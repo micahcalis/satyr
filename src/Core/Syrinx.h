@@ -1,9 +1,42 @@
 #pragma once
 
 #include "SatyrCore.h"
+#include "System/RecordLabel/Notes.h"
+#include "System/RecordLabel/Chord.h"
+#include "System/RecordLabel/Melody.h"
+#include "System/RecordLabel/Producer.h"
+#include "System/RecordLabel/Instrument.h"
+#include "System/RecordLabel/Song.h"
+#include "System/RecordLabel/Album.h"
 
 typedef struct SyrSyrinx SyrSyrinx;
 
-SyrSyrinx* SyrSyrinx_Create(const SyrConfig* config);
-SyrResult SyrSyrinx_InitializeVulkan(SyrSyrinx* syrinx, const SyrConfig* config);
+SyrResult SyrSyrinx_Initialize(const SyrConfig* config,
+    SyrSyrinx** syrinx);
+
+SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
+    const SyrNotesData notesData);
+
+SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
+    const SyrChordConfig* config);
+
+SyrMelody* SyrSyrinx_CreateMelody(SyrSyrinx* syrinx,
+    const SyrMelodyConfig* config);
+
+SyrProducer* SyrSyrinx_CreateProducer(SyrSyrinx* syrinx,
+    const SyrProducerConfig* config);
+
+SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
+    const SyrInstrumentConfig* config);
+
+SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
+    const uint32_t masterSamples);
+
+SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
+    const SyrSongConfig* config);
+
+SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
+    const SyrAlbumConfig* config);
+
+SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx);
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);

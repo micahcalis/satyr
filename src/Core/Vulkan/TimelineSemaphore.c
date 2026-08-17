@@ -50,7 +50,7 @@ SyrResult SyrTimelineSemaphore_Initialize(SyrDevice* device,
     return SYR_RESULT_SUCCESS;
 }
 
-SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timelineSemaphore, char name[64])
+SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timelineSemaphore, char name[70])
 {
     timelineSemaphore->ticketCounter++;
 
@@ -59,7 +59,7 @@ SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timeli
 
     if (name != NULL)
     {
-        strncpy_s(ticket.name, sizeof(ticket.name), name, sizeof(ticket.name) - 1);
+        SYR_STR_COPY(ticket.name, name);
         ticket.name[sizeof(ticket.name) - 1] = '\0';
     } else
     {
@@ -86,7 +86,7 @@ VkSemaphore SyrTimelineSemaphore_GetSemaphoreHandle(SyrTimelineSemaphore* timeli
     return timelineSemaphore->semaphoreHandle;
 }
 
-VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(SyrTimelineTicket* timelineTicket)
+VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(const SyrTimelineTicket* timelineTicket)
 {
     VkTimelineSemaphoreSubmitInfo submitInfo = {0};
     submitInfo.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
@@ -110,5 +110,5 @@ void SyrTimelineSemaphore_Destroy(SyrTimelineSemaphore* timelineSemaphore)
             NULL);
     }
 
-    free(timelineSemaphore);
+    SYR_FREE(timelineSemaphore);
 }

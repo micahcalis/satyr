@@ -9,7 +9,7 @@ typedef struct SyrTimelineSemaphore SyrTimelineSemaphore;
 
 typedef struct SyrTimelineTicket
 {
-    char name[64];
+    char name[70];
     uint64_t id;
 } SyrTimelineTicket;
 
@@ -20,6 +20,6 @@ SyrTimelineTicket SyrTimelineSemaphore_AssignTicket(SyrTimelineSemaphore* timeli
 void SyrTimelineSemaphore_UpdateSemaphoreCounter(SyrTimelineSemaphore* timelineSemaphore);
 bool SyrTimelineSemaphore_IsTicketComplete(SyrTimelineSemaphore* timelineSemaphore, const SyrTimelineTicket* ticket);
 VkSemaphore SyrTimelineSemaphore_GetSemaphoreHandle(SyrTimelineSemaphore* timelineSemaphore);
-VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(SyrTimelineTicket* timelineTicket);
+VkTimelineSemaphoreSubmitInfo SyrTimelineSemaphore_GetSubmitInfo(const SyrTimelineTicket* timelineTicket);
 
 void SyrTimelineSemaphore_Destroy(SyrTimelineSemaphore* timelineSemaphore);

@@ -66,7 +66,7 @@ static SyrResult SyrShaderModule_CreateShaderModule(SyrShaderModule* shaderModul
         return SYR_RESULT_VULKAN_FAILED;
     }
 
-    free(buffer);
+    SYR_FREE(buffer);
 
     return SYR_RESULT_SUCCESS;
 }
@@ -122,5 +122,5 @@ void SyrShaderModule_Destroy(SyrShaderModule* shaderModule)
             NULL);
     }
 
-    free(shaderModule);
+    SYR_FREE(shaderModule);
 }

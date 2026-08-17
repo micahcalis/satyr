@@ -86,11 +86,11 @@ SyrResult SyrPipelineCache_Initialize(const SyrConfig* config,
     {
         SYR_ERROR("Failed to create pipeline cache");
         SyrPipelineCache_Destroy(*pipelineCache);
-        free(fileBuffer);
+        SYR_FREE(fileBuffer);
         return SYR_RESULT_VULKAN_FAILED;
     }
 
-    free(fileBuffer);
+    SYR_FREE(fileBuffer);
     return SYR_RESULT_SUCCESS;
 }
 
@@ -120,7 +120,7 @@ static SyrResult SyrPipelineCache_SaveCache(SyrPipelineCache* pipelineCache)
             != VK_SUCCESS)
         {
             SYR_ERROR("Failed to get Pipeline Cache Data!");
-            free(cacheData);
+            SYR_FREE(cacheData);
             return SYR_RESULT_VULKAN_FAILED;
         }
 
@@ -130,7 +130,7 @@ static SyrResult SyrPipelineCache_SaveCache(SyrPipelineCache* pipelineCache)
             fwrite(cacheData, 1, cacheSize, file);
             fclose(file);
         }
-        free(cacheData);
+        SYR_FREE(cacheData);
     }
     return SYR_RESULT_SUCCESS;
 #endif
@@ -156,10 +156,10 @@ void SyrPipelineCache_Destroy(SyrPipelineCache* pipelineCache)
 
     if (pipelineCache->cachePath != NULL)
     {
-        free(pipelineCache->cachePath);
+        SYR_FREE(pipelineCache->cachePath);
     }
 
-    free(pipelineCache);
+    SYR_FREE(pipelineCache);
 }
 
 static void SyrPipeline_GetEntryPointName(const uint32_t index, size_t maxLength, char* name)
@@ -280,6 +280,16 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
     return SYR_RESULT_SUCCESS;
 }
 
+VkPipeline SyrPipeline_GetPipelineHandle(const SyrPipeline* pipeline)
+{
+    return pipeline->pipelineHandle;
+}
+
+VkPipelineLayout SyrPipeline_GetLayout(const SyrPipeline* pipeline)
+{
+    return pipeline->layoutHandle;
+}
+
 void SyrPipeline_Destroy(SyrPipeline* pipeline)
 {
     if (pipeline == NULL)
@@ -295,5 +305,5 @@ void SyrPipeline_Destroy(SyrPipeline* pipeline)
         vkDestroyPipelineLayout(pipeline->device, pipeline->layoutHandle, NULL);
     }
 
-    free(pipeline);
+    SYR_FREE(pipeline);
 }

@@ -19,4 +19,7 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
     SyrPipelineCache* pipelineCache,
     SyrPipeline** pipeline);
 
+VkPipeline SyrPipeline_GetPipelineHandle(const SyrPipeline* pipeline);
+VkPipelineLayout SyrPipeline_GetLayout(const SyrPipeline* pipeline);
+
 void SyrPipeline_Destroy(SyrPipeline* pipeline);
