@@ -5,7 +5,8 @@ typedef struct SyrRecordLabel
     SyrSyrinx* syrinx;
     SyrList(SyrAlbum*) albums;
     SyrList(SyrProducer*) producers;
-    SyrList(SyrProduction*) activeProductions;
+    SyrList(SyrProduction) activeProductions;
+    uint64_t productionIdCounter;
 } SyrRecordLabel;
 
 SyrResult SyrRecordLabel_Initialize(SyrSyrinx* syrinx,
@@ -22,6 +23,7 @@ SyrResult SyrRecordLabel_Initialize(SyrSyrinx* syrinx,
     (*recordLabel)->albums = NULL;
     (*recordLabel)->producers = NULL;
     (*recordLabel)->activeProductions = NULL;
+    (*recordLabel)->productionIdCounter = 0;
 
     return SYR_RESULT_SUCCESS;
 }
@@ -81,16 +83,23 @@ static inline bool SyrRecordLabel_IsAlbumInProduction(const SyrRecordLabel* reco
 {
     for (size_t i = 0; i < SyrList_Count(recordLabel->activeProductions); i++)
     {
-        if (album == recordLabel->activeProductions[i]->album)
+        if (album == recordLabel->activeProductions[i].album)
             return true;
     }
 
     return false;
 }
 
+static uint64_t SyrRecordLabel_NewProductionId(SyrRecordLabel* recordLabel)
+{
+    recordLabel->productionIdCounter++;
+    return recordLabel->productionIdCounter;
+}
+
 SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     SyrAlbum* album,
-    SyrProducer* producer)
+    SyrProducer* producer,
+    uint64_t* productionIdRef)
 {
     if (SyrList_Count(recordLabel->activeProductions) >= SYR_MAX_POLL_EVENTS)
     {
@@ -116,20 +125,26 @@ SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
         return SYR_RESULT_FAILED;
     }
 
-    SyrProduction* production = SYR_NEW(production);
-    production->album = album;
-    production->producer = producer;
+    SyrProduction production = {0};
+    production.album = album;
+    production.producer = producer;
 
     if (SyrAlbum_RecordSongs(album,
             producer,
-            &production->ticket)
+            &production.ticket)
         != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Can't start Production, Album (naem: %s) Record Songs Failure!",
             SyrAlbum_GetName(album));
 
-        SYR_FREE(production);
         return SYR_RESULT_FAILED;
+    }
+
+    production.productionId = SyrRecordLabel_NewProductionId(recordLabel);
+
+    if (productionIdRef != NULL)
+    {
+        *productionIdRef = production.productionId;
     }
 
     SyrList_Push(recordLabel->activeProductions, production);
@@ -153,13 +168,13 @@ SyrResult SyrRecordLabel_PollEvents(SyrRecordLabel* recordLabel,
     for (size_t i = 0; i < SyrList_Count(recordLabel->activeProductions); i++)
     {
         SyrProductionEvent* event = &pollEvents->events[i];
-        SyrProduction* production = recordLabel->activeProductions[i];
+        SyrProduction* production = &recordLabel->activeProductions[i];
 
         event->state = SyrProducer_IsTicketComplete(production->producer, &production->ticket)
             ? SYR_PRODUCTION_STATE_RECORDED
             : SYR_PRODUCTION_STATE_UNRECORDED;
 
-        event->production = production;
+        event->production = *production;
     }
 
     return SYR_RESULT_SUCCESS;
@@ -169,11 +184,6 @@ void SyrRecordLabel_Destroy(SyrRecordLabel* recordLabel)
 {
     if (recordLabel == NULL)
         return;
-
-    for (size_t i = 0; i < SyrList_Count(recordLabel->activeProductions); i++)
-    {
-        SYR_FREE(recordLabel->activeProductions[i]);
-    }
 
     SyrList_Free(recordLabel->activeProductions);
 

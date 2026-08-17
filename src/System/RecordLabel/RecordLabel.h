@@ -14,6 +14,7 @@ typedef enum
 
 typedef struct SyrProduction
 {
+    uint64_t productionId;
     SyrProducer* producer;
     SyrAlbum* album;
     SyrTimelineTicket ticket;
@@ -21,7 +22,7 @@ typedef struct SyrProduction
 
 typedef struct SyrProductionEvent
 {
-    const SyrProduction* production;
+    SyrProduction production;
     SyrProductionState state;
 } SyrProductionEvent;
 
@@ -44,7 +45,8 @@ SyrProducer* SyrRecordLabel_NewProducer(SyrRecordLabel* recordLabel,
 
 SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     SyrAlbum* album,
-    SyrProducer* producer);
+    SyrProducer* producer,
+    uint64_t* productionIdRef);
 
 SyrResult SyrRecordLabel_PollEvents(SyrRecordLabel* recordLabel,
     SyrPollEvents* pollEvents);
