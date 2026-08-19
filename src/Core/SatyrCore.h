@@ -12,13 +12,17 @@ typedef enum
     SYR_RESULT_FAILED = 1,
     SYR_RESULT_VULKAN_FAILED = 2,
     SYR_RESULT_WAITING = 3,
-    SYR_RESULT_RUNTIME_ERROR = 4
+    SYR_RESULT_RUNTIME_ERROR = 4,
+    SYR_RESULT_MINIAUDIO_FAILED = 5
 } SyrResult;
 
 typedef struct SyrConfig
 {
     bool bootupOnStartup;
     char* pipelineCachePath;
+    bool playbackStereoEnabled;
+    bool overrideStandardSampleRate;
+    uint32_t overrideSampleRate;
 } SyrConfig;
 
 #define SYR_VULKAN_VERSION VK_API_VERSION_1_4

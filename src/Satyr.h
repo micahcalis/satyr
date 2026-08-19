@@ -30,6 +30,9 @@
 
 // System - RecordPlayer
 #include "System/RecordPlayer/AudioAsset.h"
+#include "System/RecordPlayer/AudioDevice.h"
+#include "System/RecordPlayer/RecordPlayer.h"
+#include "System/RecordPlayer/Vinyl.h"
 
 // Utilities
 #include "Utilities/DynamicArray.h"
@@ -65,5 +68,8 @@
 
     // System - RecordPlayer
     #include "System/RecordPlayer/AudioAsset.c"
+    #include "System/RecordPlayer/AudioDevice.c"
+    #include "System/RecordPlayer/RecordPlayer.c"
+    #include "System/RecordPlayer/Vinyl.c"
 
 #endif // SATYR_IMPLEMENTATION

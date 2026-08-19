@@ -2,7 +2,10 @@
 
 static const SyrConfig SYR_MAIN_CONFIG = {
     .bootupOnStartup = true,
-    .pipelineCachePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/pipeline_cache.bin"};
+    .pipelineCachePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/pipeline_cache.bin",
+    .playbackStereoEnabled = false,
+    .overrideSampleRate = false,
+    .overrideStandardSampleRate = 0};
 
 int main()
 {
@@ -19,6 +22,14 @@ int main()
     SyrRecordLabel* recordLabel = NULL;
     if (SyrRecordLabel_Initialize(syrinx, &recordLabel) != SYR_RESULT_SUCCESS)
     {
+        SyrSyrinx_Destroy(syrinx);
+        return SYR_RESULT_FAILED;
+    }
+
+    SyrRecordPlayer* recordPlayer = NULL;
+    if (SyrRecordPlayer_Initialize(&recordPlayer) != SYR_RESULT_SUCCESS)
+    {
+        SyrRecordLabel_Destroy(recordLabel);
         SyrSyrinx_Destroy(syrinx);
         return SYR_RESULT_FAILED;
     }

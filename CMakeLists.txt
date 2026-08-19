@@ -44,17 +44,29 @@ if(NOT EXISTS "${DR_LIBS_IMP_FILE}")
 endif()
 
 # ==========================================
+# MINIAUDIO IMPLEMENTATION (VENDOR)
+# ==========================================
+
+set(MINI_AUDIO_IMP_FILE "${CMAKE_BINARY_DIR}/miniaudio_implementation.c")
+if(NOT EXISTS "${MINI_AUDIO_IMP_FILE}")
+    file(WRITE "${MINI_AUDIO_IMP_FILE}"
+        "#define MINIAUDIO_IMPLEMENTATION\n"         
+"#include \"miniaudio.h\"\n\n")
+endif()
+
+# ==========================================
 # TARGET EXECUTABLE & INCLUDES
 # ==========================================
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.c")
 
-add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${DR_LIBS_IMP_FILE})
+add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${DR_LIBS_IMP_FILE} ${MINI_AUDIO_IMP_FILE})
 
 target_include_directories(Satyr PRIVATE 
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/vendor/VMA
     ${CMAKE_SOURCE_DIR}/vendor/dr_libs
+    ${CMAKE_SOURCE_DIR}/vendor/miniaudio
 )
 
 target_link_libraries(Satyr PRIVATE 
