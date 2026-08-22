@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdatomic.h>
+#include <math.h>
 #include "vulkan/vulkan.h"
 
 typedef enum
@@ -34,5 +36,7 @@ typedef struct SyrConfig
 
 #include "Utilities/SatyrDebug.h"
 #include "Utilities/DynamicArray.h"
+#include "Utilities/SlotMap.h"
+#include "Utilities/Math.h"
 
 #define SYR_STR_COPY(dest, src) strncpy_s(dest, sizeof(dest), src, sizeof(dest) - 1)

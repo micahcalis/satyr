@@ -1,137 +1,143 @@
 #include "RecordPlayer.h"
 #include "System/RecordPlayer/VinylInternal.h"
+#include "System/RecordPlayer/VoiceInternal.h"
+#include "System/RecordPlayer/AudioDevice.h"
 
-typedef struct SyrSlot
-{
-    uint32_t denseIndex;
-    uint32_t generation;
-} SyrSlot;
+SYR_DEFINE_SLOT_MAP(SyrVinyl, SyrVinylSlotMap, SYR_MAX_VINYLS)
+SYR_DEFINE_SLOT_MAP(SyrVoice, SyrVoiceSlotMap, SYR_MAX_VOICES)
 
 typedef struct SyrRecordPlayer
 {
-    SyrVinyl dense[SYR_MAX_VINYLS];
-    uint32_t denseToSlot[SYR_MAX_VINYLS];
-    SyrSlot slots[SYR_MAX_VINYLS];
-    uint32_t denseCount;
-    uint32_t freeHead;
+    SyrAudioDevice* audioDevice;
+    SyrVinylSlotMap vinylSlotMap;
+    SyrVoice voices[SYR_MAX_VOICES];
 } SyrRecordPlayer;
 
-#define SYR_SLOT_FREE_END 0xFFFFFFFF
-
-static inline void SyrRecordPlayer_InitializeSlotMap(SyrRecordPlayer* recordPlayer)
+static void SyrAudioDevice_VoiceUpdate(SyrVoice* voice,
+    float* outputBuffer,
+    const ma_uint32 frameCount,
+    const uint8_t deviceChannels,
+    const double deviceSampleRate)
 {
-    recordPlayer->denseCount = 0;
-    recordPlayer->freeHead = 0;
+    double sampleRatio = (double)voice->sampleRate / deviceSampleRate;
+    double cursorStep = (double)voice->pitch * sampleRatio;
 
-    for (int i = 0; i < SYR_MAX_VINYLS; i++)
+    for (ma_uint32 f = 0; f < frameCount; f++)
     {
-        recordPlayer->slots[i].denseIndex = i + 1;
-        recordPlayer->slots[i].generation = 1;
-    }
+        if (voice->cursorFrame >= (double)voice->frameSegmentEnd)
+        {
+            if (voice->isLooping)
+            {
+                double segmentLength = (double)(voice->frameSegmentEnd - voice->frameSegmentBegin);
+                voice->cursorFrame -= (segmentLength > 0.0 ? segmentLength : 1.0);
+            } else
+            {
+                atomic_store_explicit(&voice->isPlaying, false, memory_order_release);
+                break;
+            }
+        }
 
-    recordPlayer->slots[SYR_MAX_VINYLS - 1].denseIndex = SYR_SLOT_FREE_END;
+        if (voice->cursorFrame > (double)voice->frameSegmentEnd)
+        {
+            voice->cursorFrame = (double)voice->frameSegmentEnd;
+        }
+        for (uint8_t dc = 0; dc < deviceChannels; dc++)
+        {
+            uint8_t vc = (dc < voice->channels) ? dc : 0;
+            float rawSample = SyrVoice_CalculateSampleLerp(voice, vc);
+            outputBuffer[f * deviceChannels + dc] += rawSample * voice->volume;
+        }
+
+        voice->cursorFrame += cursorStep;
+    }
 }
 
-SyrResult SyrRecordPlayer_Initialize(SyrRecordPlayer** recordPlayer)
+static void SyrAudioDevice_DataCallback(MaDevice* deviceHandle, void* output, const void* input, ma_uint32 frameCount)
 {
-    *recordPlayer = SYR_NEW(*recordPlayer);
-    SyrRecordPlayer_InitializeSlotMap(*recordPlayer);
+    SyrRecordPlayer* recordPlayer = (SyrRecordPlayer*)deviceHandle->pUserData;
+
+    if (recordPlayer == NULL)
+        return;
+
+    double deviceSampleRate = (double)SyrAudioDevice_GetSampleRate(recordPlayer->audioDevice);
+    uint8_t deviceChannels = SyrAudioDevice_GetChannels(recordPlayer->audioDevice);
+    float* outputBuffer = (float*)output;
+    memset(outputBuffer, 0, frameCount * deviceChannels * sizeof(float));
+
+    for (int i = 0; i < SYR_MAX_VOICES; i++)
+    {
+        SyrVoice* voice = &recordPlayer->voices[i];
+        bool playing = atomic_load_explicit(&voice->isPlaying, memory_order_acquire);
+
+        if (playing && voice->pcmData != NULL)
+        {
+            SyrAudioDevice_VoiceUpdate(voice,
+                outputBuffer,
+                frameCount,
+                deviceChannels,
+                deviceSampleRate);
+        }
+    }
+
+    (void)input;
+}
+
+static SyrResult SyrRecordPlayer_InitializeDevice(SyrRecordPlayer* recordPlayer,
+    const SyrConfig* config)
+{
+    if (SyrAudioDevice_Initialize(config,
+            SyrAudioDevice_DataCallback,
+            recordPlayer,
+            &recordPlayer->audioDevice)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Initialize Audio Device for Record Player!");
+        return SYR_RESULT_MINIAUDIO_FAILED;
+    }
 
     return SYR_RESULT_SUCCESS;
 }
 
-static inline SyrVinylId SyrRecordPlayer_GenerateNewSlotHandle(SyrRecordPlayer* recordPlayer)
+SyrResult SyrRecordPlayer_Initialize(const SyrConfig* config,
+    SyrRecordPlayer** recordPlayer)
 {
-    uint32_t slotIndex = recordPlayer->freeHead;
-    SyrSlot* slot = &recordPlayer->slots[slotIndex];
-    recordPlayer->freeHead = slot->denseIndex;
+    *recordPlayer = SYR_NEW(*recordPlayer);
 
-    uint32_t denseIndex = recordPlayer->denseCount;
-    slot->denseIndex = denseIndex;
-    recordPlayer->denseToSlot[denseIndex] = slotIndex;
+    SyrVinylSlotMap_Initialize(&(*recordPlayer)->vinylSlotMap);
+    memset((*recordPlayer)->voices, 0, sizeof(SyrVoice) * SYR_MAX_VOICES);
 
-    return SyrVinylId_Create(slotIndex, slot->generation);
+    if (SyrRecordPlayer_InitializeDevice(*recordPlayer, config) != SYR_RESULT_SUCCESS)
+    {
+        SyrRecordPlayer_Destroy(*recordPlayer);
+        *recordPlayer = NULL;
+        return SYR_RESULT_MINIAUDIO_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
 }
 
 SyrVinylId SyrRecordPlayer_CreateVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylConfig* config)
+    const SyrVinylConfig* config)
 {
-    if (recordPlayer->freeHead == SYR_SLOT_FREE_END)
-    {
-        SYR_ERROR("Record Player Vinyl Limit Reached: %u", SYR_MAX_VINYLS);
-        return SYR_INVALID_VINYL_ID;
-    }
+    SyrVinyl vinyl = {0};
+    vinyl.mode = config->mode;
+    vinyl.ownership = config->ownership;
+    vinyl.audioAsset = config->audioAsset;
+    vinyl.frameSegmentBegin = config->frameSegmentBegin;
+    vinyl.frameSegmentEnd = config->frameSegmentEnd;
+    SYR_STR_COPY(vinyl.name, config->name);
 
-    SyrVinylId id = SyrRecordPlayer_GenerateNewSlotHandle(recordPlayer);
-
-    uint32_t slotIndex = SyrVinylId_GetIndex(id);
-    uint32_t denseIndex = recordPlayer->slots[slotIndex].denseIndex;
-
-    SyrVinyl* vinyl = &recordPlayer->dense[denseIndex];
-    vinyl->id = id;
-    vinyl->mode = config->mode;
-    vinyl->ownership = config->ownership;
-    vinyl->audioAsset = config->audioAsset;
-    vinyl->frameSegment[0] = config->frameSegmentBegin;
-    vinyl->frameSegment[1] = config->frameSegmentEnd;
-    SYR_STR_COPY(vinyl->name, config->name);
-
-    recordPlayer->denseCount++;
-    return id;
+    return SyrVinylSlotMap_Insert(&recordPlayer->vinylSlotMap, vinyl);
 }
 
 SyrVinyl* SyrRecordPlayer_GetVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylId id)
+    const SyrVinylId id)
 {
-    if (id == SYR_INVALID_VINYL_ID)
-    {
-        SYR_ERROR("Record Player can't get Vinyl with invalid ID!");
-        return NULL;
-    }
-
-    uint32_t slotIndex = SyrVinylId_GetIndex(id);
-    uint32_t generation = SyrVinylId_GetGeneration(id);
-
-    if (slotIndex >= SYR_MAX_VINYLS)
-    {
-        SYR_ERROR("Record Player can't get Vinyl with Slot Index higher than limit: %u", SYR_MAX_VINYLS);
-        return NULL;
-    }
-
-    SyrSlot* slot = &recordPlayer->slots[slotIndex];
-
-    if (slot->generation != generation)
-    {
-        SYR_ERROR("Record Player can't get Vinyl with stale or deleted handle");
-        return NULL;
-    }
-
-    return &recordPlayer->dense[slot->denseIndex];
-}
-
-static inline void SyrRecordPlayer_SwapAndPopSlot(SyrRecordPlayer* recordPlayer,
-    const uint32_t denseIndex,
-    const uint32_t lastDenseIndex)
-{
-    if (denseIndex != lastDenseIndex)
-    {
-        recordPlayer->dense[denseIndex] = recordPlayer->dense[lastDenseIndex];
-        uint32_t lastItemSlotIndex = recordPlayer->denseToSlot[lastDenseIndex];
-        recordPlayer->slots[lastItemSlotIndex].denseIndex = denseIndex;
-        recordPlayer->denseToSlot[denseIndex] = lastItemSlotIndex;
-    }
-}
-
-static inline void SyrRecordPlayer_RecycleSlot(SyrRecordPlayer* recordPlayer,
-    const uint32_t slotIndex)
-{
-    recordPlayer->slots[slotIndex].generation++;
-    recordPlayer->slots[slotIndex].denseIndex = recordPlayer->freeHead;
-    recordPlayer->freeHead = slotIndex;
+    return SyrVinylSlotMap_Get(&recordPlayer->vinylSlotMap, id);
 }
 
 SyrResult SyrRecordPlayer_DestroyVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylId id)
+    const SyrVinylId id)
 {
     SyrVinyl* vinyl = SyrRecordPlayer_GetVinyl(recordPlayer, id);
 
@@ -141,18 +147,175 @@ SyrResult SyrRecordPlayer_DestroyVinyl(SyrRecordPlayer* recordPlayer,
         return SYR_RESULT_FAILED;
     }
 
-    uint32_t slotIndex = SyrVinylId_GetIndex(id);
-    uint32_t denseIndex = recordPlayer->slots[slotIndex].denseIndex;
-    uint32_t lastDenseIndex = recordPlayer->denseCount - 1;
-
     if (vinyl->ownership == SYR_VINYL_ASSET_OWNERSHIP_STRICT && vinyl->audioAsset != NULL)
     {
         SyrAudioAsset_Destroy(vinyl->audioAsset);
     }
 
-    SyrRecordPlayer_SwapAndPopSlot(recordPlayer, denseIndex, lastDenseIndex);
-    SyrRecordPlayer_RecycleSlot(recordPlayer, slotIndex);
+    return SyrVinylSlotMap_Remove(&recordPlayer->vinylSlotMap, id);
+}
 
-    recordPlayer->denseCount--;
-    return SYR_RESULT_SUCCESS;
+static SyrVoiceId SyrRecordPlayer_TryGetVoiceId(SyrRecordPlayer* recordPlayer)
+{
+    for (int i = 0; i < SYR_MAX_VOICES; i++)
+    {
+        const SyrVoice* voice = &recordPlayer->voices[i];
+
+        if (!atomic_load_explicit(&voice->isPlaying, memory_order_relaxed))
+        {
+            atomic_uint newGeneration = atomic_load_explicit(&voice->generation, memory_order_relaxed) + 1;
+            return SyrSlotId_Create(i, newGeneration);
+        }
+    }
+
+    return SYR_INVALID_SLOT_ID;
+}
+
+static void SyrRecordPlayer_CreateVoiceFromVinyl(SyrRecordPlayer* recordPlayer,
+    SyrVoice* voice,
+    const SyrVinyl* vinyl,
+    const uint32_t generation,
+    const float volume,
+    const float pitch)
+{
+    voice->pcmData = vinyl->audioAsset->pcmData;
+    voice->totalFrames = vinyl->audioAsset->totalFrames;
+    voice->channels = vinyl->audioAsset->channels;
+    voice->sampleRate = vinyl->audioAsset->sampleRate;
+    voice->volume = volume;
+    voice->pitch = pitch;
+    voice->cursorFrame = 0;
+
+    switch (vinyl->mode)
+    {
+    case SYR_VINYL_MODE_LOOP_SEGMENT:
+    case SYR_VINYL_MODE_PLAY_ONCE_SEGMENT:
+        voice->frameSegmentBegin = SYR_MATH_MIN(vinyl->frameSegmentBegin, vinyl->audioAsset->totalFrames);
+        voice->frameSegmentEnd = SYR_MATH_MIN(vinyl->frameSegmentEnd, vinyl->audioAsset->totalFrames);
+
+        if (voice->frameSegmentBegin >= voice->frameSegmentEnd)
+        {
+            voice->frameSegmentBegin = 0;
+            voice->frameSegmentEnd = vinyl->audioAsset->totalFrames;
+        }
+
+        voice->isLooping = (vinyl->mode == SYR_VINYL_MODE_LOOP_SEGMENT);
+        voice->cursorFrame = (double)voice->frameSegmentBegin;
+        break;
+
+    case SYR_VINYL_MODE_LOOP:
+    case SYR_VINYL_MODE_PLAY_ONCE:
+    default:
+        voice->frameSegmentBegin = 0;
+        voice->frameSegmentEnd = vinyl->audioAsset->totalFrames;
+        voice->isLooping = (vinyl->mode == SYR_VINYL_MODE_LOOP);
+        voice->cursorFrame = 0.0;
+        break;
+    }
+
+    atomic_store_explicit(&voice->generation, generation, memory_order_release);
+    atomic_store_explicit(&voice->isPlaying, true, memory_order_release);
+}
+
+SyrVoiceId SyrRecordPlayer_PlayVinyl(SyrRecordPlayer* recordPlayer,
+    const SyrVinylId vinylId,
+    const float volume,
+    const float pitch)
+{
+    SyrVinyl* vinyl = SyrVinylSlotMap_Get(&recordPlayer->vinylSlotMap, vinylId);
+
+    if (vinyl == NULL || vinyl->audioAsset == NULL || vinyl->audioAsset->pcmData == NULL)
+    {
+        SYR_ERROR("Can't play Vinyl: Invalid handle or uninitialized audio asset!");
+        return SYR_INVALID_SLOT_ID;
+    }
+
+    if (vinyl->audioAsset->totalFrames == 0)
+    {
+        SYR_ERROR("Can't play Vinyl (name: %s) with 0 Total Frames!", vinyl->name);
+        return SYR_INVALID_SLOT_ID;
+    }
+
+    SyrVoiceId voiceId = SyrRecordPlayer_TryGetVoiceId(recordPlayer);
+
+    if (voiceId == SYR_INVALID_SLOT_ID)
+    {
+        SYR_ERROR("Can't play Vinyl (name: %s), no available Voices (max: %u)!",
+            vinyl->name,
+            SYR_MAX_VOICES);
+
+        return SYR_INVALID_SLOT_ID;
+    }
+
+    uint32_t index = SyrSlotId_GetIndex(voiceId);
+    uint32_t generation = SyrSlotId_GetGeneration(voiceId);
+    SyrVoice* voice = &recordPlayer->voices[index];
+
+    SyrRecordPlayer_CreateVoiceFromVinyl(recordPlayer,
+        voice,
+        vinyl,
+        generation,
+        volume,
+        pitch);
+
+    return voiceId;
+}
+
+SyrVoice* SyrRecordPlayer_GetVoice(SyrRecordPlayer* recordPlayer,
+    const SyrVoiceId voiceId)
+{
+    uint32_t index = SyrSlotId_GetIndex(voiceId);
+    uint32_t generation = SyrSlotId_GetGeneration(voiceId);
+
+    if (index >= SYR_MAX_VOICES)
+    {
+        SYR_ERROR("Voice Index out of range (%u), max is %u!",
+            index,
+            SYR_MAX_VOICES);
+
+        return NULL;
+    }
+
+    SyrVoice* voice = &recordPlayer->voices[index];
+    uint32_t currentGeneration = atomic_load_explicit(&voice->generation, memory_order_relaxed);
+
+    if (currentGeneration != generation)
+    {
+        SYR_ERROR("Voice Generation outdated (%u), current is %u!",
+            generation,
+            currentGeneration);
+
+        return NULL;
+    }
+
+    if (!atomic_load_explicit(&voice->isPlaying, memory_order_acquire))
+    {
+        SYR_ERROR("Voice Finished Playing!");
+        return NULL;
+    }
+
+    return voice;
+}
+
+void SyrRecordPlayer_Destroy(SyrRecordPlayer* recordPlayer)
+{
+    if (recordPlayer == NULL)
+        return;
+
+    if (recordPlayer->audioDevice != NULL)
+    {
+        SyrAudioDevice_Destroy(recordPlayer->audioDevice);
+    }
+
+    for (int i = recordPlayer->vinylSlotMap.denseCount - 1; i >= 0; i--)
+    {
+        SyrVinyl* vinyl = &recordPlayer->vinylSlotMap.dense[i];
+        uint32_t slotIndex = recordPlayer->vinylSlotMap.denseToSlot[i];
+        uint32_t generation = recordPlayer->vinylSlotMap.slots[slotIndex].generation;
+        SyrVinylId vinylId = SyrSlotId_Create(slotIndex, generation);
+
+        SyrRecordPlayer_DestroyVinyl(recordPlayer, vinylId);
+    }
+
+    SYR_FREE(recordPlayer);
 }

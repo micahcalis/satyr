@@ -14,14 +14,9 @@ void SyrVinyl_SetAudioAsset(SyrVinyl* vinyl,
 }
 
 void SyrVinyl_SetSegment(SyrVinyl* vinyl,
-    const uint64_t frameSegmentBegin,
-    const uint64_t frameSegmentEnd)
+    const uint32_t frameSegmentBegin,
+    const uint32_t frameSegmentEnd)
 {
-    vinyl->frameSegment[0] = frameSegmentBegin;
-    vinyl->frameSegment[1] = frameSegmentEnd;
-}
-
-SyrVinylId SyrVinyl_GetId(const SyrVinyl* vinyl)
-{
-    return vinyl->id;
+    vinyl->frameSegmentBegin = frameSegmentBegin;
+    vinyl->frameSegmentEnd = frameSegmentEnd;
 }

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Core/SatyrCore.h"
 #include "System/RecordPlayer/AudioAsset.h"
 
-typedef uint64_t SyrVinylId;
+#define SYR_MAX_VINYLS 512
+
+typedef SyrSlotId SyrVinylId;
 
 typedef enum
 {
@@ -35,7 +36,5 @@ void SyrVinyl_SetAudioAsset(SyrVinyl* vinyl,
     SyrAudioAsset* audioAsset);
 
 void SyrVinyl_SetSegment(SyrVinyl* vinyl,
-    const uint64_t frameSegmentBegin,
-    const uint64_t frameSegmentEnd);
-
-SyrVinylId SyrVinyl_GetId(const SyrVinyl* vinyl);
+    const uint32_t frameSegmentBegin,
+    const uint32_t frameSegmentEnd);

@@ -2,21 +2,28 @@
 
 #include "Core/SatyrCore.h"
 #include "System/RecordPlayer/Vinyl.h"
-
-#define SYR_MAX_VINYLS 512
-#define SYR_INVALID_VINYL_ID 0
+#include "System/RecordPlayer/Voice.h"
 
 typedef struct SyrRecordPlayer SyrRecordPlayer;
 
-SyrResult SyrRecordPlayer_Initialize(SyrRecordPlayer** recordPlayer);
+SyrResult SyrRecordPlayer_Initialize(const SyrConfig* config,
+    SyrRecordPlayer** recordPlayer);
 
 SyrVinylId SyrRecordPlayer_CreateVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylConfig* config);
+    const SyrVinylConfig* config);
 
 SyrVinyl* SyrRecordPlayer_GetVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylId id);
+    const SyrVinylId id);
 
 SyrResult SyrRecordPlayer_DestroyVinyl(SyrRecordPlayer* recordPlayer,
-    SyrVinylId id);
+    const SyrVinylId id);
+
+SyrVoiceId SyrRecordPlayer_PlayVinyl(SyrRecordPlayer* recordPlayer,
+    const SyrVinylId vinylId,
+    const float volume,
+    const float pitch);
+
+SyrVoice* SyrRecordPlayer_GetVoice(SyrRecordPlayer* recordPlayer,
+    const SyrVoiceId voiceId);
 
 void SyrRecordPlayer_Destroy(SyrRecordPlayer* recordPlayer);

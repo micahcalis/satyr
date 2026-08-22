@@ -1,4 +1,6 @@
 #include "Satyr.h"
+#include "Core/SatyrCore.h"
+#include "Utilities/SatyrDebug.h"
 
 static const SyrConfig SYR_MAIN_CONFIG = {
     .bootupOnStartup = true,
@@ -27,17 +29,21 @@ int main()
     }
 
     SyrRecordPlayer* recordPlayer = NULL;
-    if (SyrRecordPlayer_Initialize(&recordPlayer) != SYR_RESULT_SUCCESS)
+    if (SyrRecordPlayer_Initialize(&SYR_MAIN_CONFIG, &recordPlayer) != SYR_RESULT_SUCCESS)
     {
         SyrRecordLabel_Destroy(recordLabel);
         SyrSyrinx_Destroy(syrinx);
         return SYR_RESULT_FAILED;
     }
 
+    SyrAudioAssetLoadConfig audioLoadConfig = {.filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_ClearCanvas.mp3",
+        .name = "AudioClearCanvas",
+        .sampleRate = SYR_AUDIO_SAMPLE_RATE,
+        .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO};
+
     SyrAudioAsset* audioAsset = NULL;
-    SyrAudioAsset_LoadWAV("C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Paint.wav",
-        "AudioPaint",
-        &audioAsset);
+
+    SyrAudioAsset_Load(&audioLoadConfig, &audioAsset);
 
     float notesTest = 23234.f;
     SyrChordConfig chordConfig = {
@@ -121,11 +127,28 @@ int main()
         }
     }
 
+    uint64_t halfSegment = audioAsset->totalFrames / 10;
+
+    SyrVinylConfig vinylConfig = {.name = "testVinyl",
+        .audioAsset = audioAsset,
+        .mode = SYR_VINYL_MODE_LOOP_SEGMENT,
+        .ownership = SYR_VINYL_ASSET_OWNERSHIP_STRICT,
+        .frameSegmentBegin = 0,
+        .frameSegmentEnd = halfSegment};
+
+    SyrVinylId vinylId = SyrRecordPlayer_CreateVinyl(recordPlayer, &vinylConfig);
+    SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 1.0f, 0.8f);
+
+    SYR_LOG("Press 'Enter' to Exit...");
+    getchar();
+
     SyrDevice_WaitIdle(SyrSyrinx_GetDevice(syrinx));
+
+    SyrRecordPlayer_Destroy(recordPlayer);
 
     SyrMelody_Destroy(melody);
     SyrMetronome_Destroy(metronome);
-    SyrAudioAsset_Destroy(audioAsset);
+    // SyrAudioAsset_Destroy(audioAsset);
 
     SyrRecordLabel_Destroy(recordLabel);
     SyrSyrinx_Destroy(syrinx);
