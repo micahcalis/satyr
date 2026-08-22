@@ -132,12 +132,21 @@ int main()
     SyrVinylConfig vinylConfig = {.name = "testVinyl",
         .audioAsset = audioAsset,
         .mode = SYR_VINYL_MODE_LOOP_SEGMENT,
-        .ownership = SYR_VINYL_ASSET_OWNERSHIP_STRICT,
+        .ownership = SYR_VINYL_ASSET_OWNERSHIP_RELAXED,
         .frameSegmentBegin = 0,
         .frameSegmentEnd = halfSegment};
 
     SyrVinylId vinylId = SyrRecordPlayer_CreateVinyl(recordPlayer, &vinylConfig);
     SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 1.0f, 0.8f);
+
+    // SyrAudioAssetExportConfig exportConfig = {.filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/TestTestMotherfucker.mp3",
+    //     .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
+    //     .sampleRate = audioAsset->sampleRate};
+
+    // if (SyrAudioAsset_ExportWAV(audioAsset, &exportConfig) != SYR_RESULT_SUCCESS)
+    // {
+    //     SYR_LOG("Fuck");
+    // }
 
     SYR_LOG("Press 'Enter' to Exit...");
     getchar();
@@ -148,7 +157,7 @@ int main()
 
     SyrMelody_Destroy(melody);
     SyrMetronome_Destroy(metronome);
-    // SyrAudioAsset_Destroy(audioAsset);
+    SyrAudioAsset_Destroy(audioAsset);
 
     SyrRecordLabel_Destroy(recordLabel);
     SyrSyrinx_Destroy(syrinx);

@@ -4,19 +4,13 @@
 
 typedef enum
 {
-    SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
-    SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO
+    SYR_AUDIO_ASSET_SAMPLE_MODE_MONO = 1,
+    SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO = 2
 } SyrAudioAssetSampleMode;
-
-typedef enum
-{
-    SYR_AUDIO_ASSET_FILE_TYPE_WAV,
-    SYR_AUDIO_ASSET_FILE_TYPE_MP3,
-    SYR_AUDIO_ASSET_FILE_TYPE_FLAC
-} SyrAudioAssetFileType;
 
 #define SYR_AUDIO_SAMPLE_RATE 48000
 #define SYR_AUDIO_OUTPUT_CHANNELS 2
+#define SYR_MA_FORMAT ma_format_f32
 
 typedef struct SyrAudioAssetLoadConfig
 {
@@ -29,7 +23,8 @@ typedef struct SyrAudioAssetLoadConfig
 typedef struct SyrAudioAssetExportConfig
 {
     char* filePath;
-    SyrAudioAssetFileType fileType;
+    uint32_t sampleRate;
+    SyrAudioAssetSampleMode sampleMode;
 } SyrAudioAssetExportConfig;
 
 typedef struct SyrAudioAsset
@@ -44,8 +39,8 @@ typedef struct SyrAudioAsset
 SyrResult SyrAudioAsset_Load(const SyrAudioAssetLoadConfig* config,
     SyrAudioAsset** audioAsset);
 
-SyrResult SyrAudioAsset_Export(const SyrAudioAssetExportConfig* config,
-    SyrAudioAsset** audioAsset);
+SyrResult SyrAudioAsset_ExportWAV(SyrAudioAsset* audioAsset,
+    const SyrAudioAssetExportConfig* config);
 
 uint32_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, const SyrAudioAssetSampleMode sampleMode);
 bool SyrAudioAsset_IsStereo(const SyrAudioAsset* audioAsset);

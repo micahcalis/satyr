@@ -17,7 +17,7 @@ static SyrResult SyrAudioDevice_CreateDevice(SyrAudioDevice* audioDevice,
     void* pUserData)
 {
     MaDeviceConfig deviceConfig = ma_device_config_init(ma_device_type_playback);
-    deviceConfig.playback.format = ma_format_f32;
+    deviceConfig.playback.format = SYR_MA_FORMAT;
     deviceConfig.playback.channels = config->playbackStereoEnabled ? 2 : 1;
     deviceConfig.sampleRate = config->overrideSampleRate ? config->overrideStandardSampleRate : SYR_AUDIO_SAMPLE_RATE;
     deviceConfig.dataCallback = callback;
