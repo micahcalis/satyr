@@ -99,6 +99,7 @@ static uint64_t SyrRecordLabel_NewProductionId(SyrRecordLabel* recordLabel)
 SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     SyrAlbum* album,
     SyrProducer* producer,
+    const SyrProductionType type,
     uint64_t* productionIdRef)
 {
     if (SyrList_Count(recordLabel->activeProductions) >= SYR_MAX_POLL_EVENTS)
@@ -128,6 +129,20 @@ SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     SyrProduction production = {0};
     production.album = album;
     production.producer = producer;
+    production.type = type;
+
+    if (type == SYR_PRODUCTION_TYPE_RECORD_RELEASE)
+    {
+        SyrMasterDisc* masterDisc = SyrSyrinx_CreateMasterDisc(recordLabel->syrinx,
+            album);
+
+        if (masterDisc == NULL)
+        {
+            return SYR_RESULT_FAILED;
+        }
+
+        SyrAlbum_SetMasterDisc(album, masterDisc);
+    }
 
     if (SyrAlbum_RecordSongs(album,
             producer,
@@ -169,9 +184,12 @@ SyrResult SyrRecordLabel_PollEvents(SyrRecordLabel* recordLabel,
     {
         SyrProductionEvent* event = &pollEvents->events[i];
         SyrProduction* production = &recordLabel->activeProductions[i];
+        SyrProductionState completionEvent = production->type == SYR_PRODUCTION_TYPE_RECORD
+            ? SYR_PRODUCTION_STATE_RECORDED
+            : SYR_PRODUCTION_STATE_RELEASED;
 
         event->state = SyrProducer_IsTicketComplete(production->producer, &production->ticket)
-            ? SYR_PRODUCTION_STATE_RECORDED
+            ? completionEvent
             : SYR_PRODUCTION_STATE_UNRECORDED;
 
         event->production = *production;

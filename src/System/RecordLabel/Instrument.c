@@ -6,7 +6,7 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrBufferAllocParams allocParams = {0};
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-    allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     allocParams.size = sizeof(SyrTimeAudioSample) * audioBuffer->samples;
 
     audioBuffer->timeAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
@@ -25,7 +25,7 @@ static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer
     SyrBufferAllocParams allocParams = {0};
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-    allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->samples;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
@@ -38,7 +38,7 @@ static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer
     return SYR_RESULT_SUCCESS;
 }
 
-SyrResult SyrAudioBuffer_Initialize(const uint32_t samples,
+SyrResult SyrAudioBuffer_Initialize(const uint64_t samples,
     SyrAllocator* allocator,
     SyrAudioBuffer** audioBuffer)
 {
@@ -53,7 +53,7 @@ SyrResult SyrAudioBuffer_Initialize(const uint32_t samples,
 
     if (SyrAudioBuffer_CreateTimeAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
-        SYR_ERROR("Failed to create Time Allocation for Audio Buffer, samples: %u", samples);
+        SYR_ERROR("Failed to create Time Allocation for Audio Buffer, samples: %llu", samples);
         SyrAudioBuffer_Destroy(*audioBuffer);
         *audioBuffer = NULL;
         return SYR_RESULT_FAILED;
@@ -61,7 +61,7 @@ SyrResult SyrAudioBuffer_Initialize(const uint32_t samples,
 
     if (SyrAudioBuffer_CreateFrequencyAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
-        SYR_ERROR("Failed to create Frequency Allocation for Audio Buffer, samples: %u", samples);
+        SYR_ERROR("Failed to create Frequency Allocation for Audio Buffer, samples: %llu", samples);
         SyrAudioBuffer_Destroy(*audioBuffer);
         *audioBuffer = NULL;
         return SYR_RESULT_FAILED;
@@ -94,7 +94,7 @@ typedef struct SyrInstrument
     char name[32];
 } SyrInstrument;
 
-SyrResult SyrInstrument_Initialize(const uint32_t samples,
+SyrResult SyrInstrument_Initialize(const uint64_t samples,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument)
@@ -136,7 +136,7 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
 
     if (assetSamples > instrument->audioBuffer->samples)
     {
-        SYR_ERROR("Asset Samples (name: %s, samples: %u) are greater than Instrument allocated Samples (name %s, samples: %u)",
+        SYR_ERROR("Asset Samples (name: %s, samples: %u) are greater than Instrument allocated Samples (name %s, samples: %llu)",
             audioAsset->name,
             assetSamples,
             instrument->name,
@@ -195,6 +195,18 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
 const SyrAudioBuffer* SyrInstrument_GetAudioBuffer(const SyrInstrument* instrument)
 {
     return instrument->audioBuffer;
+}
+
+uint64_t SyrAudioBuffer_GetTotalFrames(const SyrAudioBuffer* audioBuffer, const SyrAudioAssetSampleMode sampleMode)
+{
+    switch (sampleMode)
+    {
+    case SYR_AUDIO_ASSET_SAMPLE_MODE_MONO:
+        return audioBuffer->samples;
+    case SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO:
+        return audioBuffer->samples * 2;
+    default: return audioBuffer->samples;
+    }
 }
 
 const char* SyrInstrument_GetName(const SyrInstrument* instrument)

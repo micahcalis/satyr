@@ -10,9 +10,11 @@ SyrResult SyrBufferAllocation_Initialize(const SyrBufferAllocParams params,
         return SYR_RESULT_RUNTIME_ERROR;
     }
 
+    size_t alignedSize = (params.size + 3) & ~3;
+
     VkBufferCreateInfo bufferCreateInfo = {0};
     bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferCreateInfo.size = params.size;
+    bufferCreateInfo.size = alignedSize;
     bufferCreateInfo.usage = params.usageFlags;
     bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 

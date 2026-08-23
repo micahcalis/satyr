@@ -42,7 +42,7 @@ SyrResult SyrAudioAsset_Load(const SyrAudioAssetLoadConfig* config,
 SyrResult SyrAudioAsset_ExportWAV(SyrAudioAsset* audioAsset,
     const SyrAudioAssetExportConfig* config);
 
-uint32_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, const SyrAudioAssetSampleMode sampleMode);
+uint64_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, const SyrAudioAssetSampleMode sampleMode);
 bool SyrAudioAsset_IsStereo(const SyrAudioAsset* audioAsset);
 
 void SyrAudioAsset_Destroy(SyrAudioAsset* audioAsset);

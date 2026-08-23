@@ -336,6 +336,25 @@ SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
     return album;
 }
 
+SyrMasterDisc* SyrSyrinx_CreateMasterDisc(SyrSyrinx* syrinx,
+    const SyrAlbum* album)
+{
+    SyrMasterDisc* masterDisc = NULL;
+
+    if (SyrMasterDisc_Initialize(SyrAlbum_GetSongCount(album),
+            SyrAlbum_GetAlbumTotalSize(album),
+            SyrAlbum_GetName(album),
+            syrinx->allocator,
+            &masterDisc)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create MasterDisc: %s", SyrAlbum_GetName(album));
+        return NULL;
+    }
+
+    return masterDisc;
+}
+
 SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx)
 {
     return syrinx->device;

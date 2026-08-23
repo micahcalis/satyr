@@ -99,7 +99,7 @@ int main()
     SyrAlbum_AddSongs(album, &song, 1);
     uint64_t productionId;
 
-    if (SyrRecordLabel_StartProduction(recordLabel, album, producer, &productionId) == SYR_RESULT_SUCCESS)
+    if (SyrRecordLabel_StartProduction(recordLabel, album, producer, SYR_PRODUCTION_TYPE_RECORD_RELEASE, &productionId) == SYR_RESULT_SUCCESS)
     {
         SYR_LOG("Production queued for Album: %s", SyrAlbum_GetName(album));
     }
@@ -116,7 +116,7 @@ int main()
             {
                 const SyrProductionEvent* event = &pollEvents.events[i];
 
-                if (event->state == SYR_PRODUCTION_STATE_RECORDED)
+                if (event->state == SYR_PRODUCTION_STATE_RELEASED)
                 {
                     SYR_LOG("Album '%s' finished recording on GPU timeline!",
                         SyrAlbum_GetName(event->production.album));

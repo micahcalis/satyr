@@ -70,7 +70,13 @@ static SyrResult SyrSong_PrePlayChord(SyrSong* song,
     return SYR_RESULT_SUCCESS;
 }
 
-SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
+static SyrResult SyrSong_BindReleaseTransfer(SyrSong* song)
+{
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrSong_Record(SyrSong* song,
+    SyrCommandBuffer* commandBuffer)
 {
     for (size_t i = 0; i < SyrMelody_GetChordCount(song->melody); i++)
     {
@@ -97,6 +103,22 @@ SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer)
     }
 
     return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrSong_Release(SyrSong* song,
+    SyrCommandBuffer* commandBuffer,
+    SyrBufferAllocation* releaseBuffer,
+    const size_t offset)
+{
+    return SyrCommandBuffer_CopyBuffer(commandBuffer,
+        song->masterBuffer->timeAllocation,
+        releaseBuffer,
+        offset);
+}
+
+size_t SyrSong_GetMasterSize(const SyrSong* song)
+{
+    return song->masterBuffer->timeAllocation->info.size;
 }
 
 const char* SyrSong_GetName(const SyrSong* song)

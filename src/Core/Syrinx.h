@@ -38,5 +38,8 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
 SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
     const SyrAlbumConfig* config);
 
+SyrMasterDisc* SyrSyrinx_CreateMasterDisc(SyrSyrinx* syrinx,
+    const SyrAlbum* album);
+
 SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx);
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);

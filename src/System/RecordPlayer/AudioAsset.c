@@ -114,15 +114,16 @@ SyrResult SyrAudioAsset_ExportWAV(SyrAudioAsset* audioAsset,
     return SYR_RESULT_SUCCESS;
 }
 
-uint32_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, SyrAudioAssetSampleMode sampleMode)
+uint64_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, SyrAudioAssetSampleMode sampleMode)
 {
     if (audioAsset == NULL)
         return 0;
 
     switch (sampleMode)
     {
-    case SYR_AUDIO_ASSET_SAMPLE_MODE_MONO: return (uint32_t)audioAsset->totalFrames;
-    case SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO: return (uint32_t)(audioAsset->totalFrames * 2);
+    case SYR_AUDIO_ASSET_SAMPLE_MODE_MONO: return audioAsset->totalFrames;
+    case SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO: return audioAsset->totalFrames * 2;
+    default: return audioAsset->totalFrames;
     }
 }
 

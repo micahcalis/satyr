@@ -12,9 +12,16 @@ typedef enum
     SYR_PRODUCTION_STATE_RELEASED
 } SyrProductionState;
 
+typedef enum
+{
+    SYR_PRODUCTION_TYPE_RECORD,
+    SYR_PRODUCTION_TYPE_RECORD_RELEASE
+} SyrProductionType;
+
 typedef struct SyrProduction
 {
     uint64_t productionId;
+    SyrProductionType type;
     SyrProducer* producer;
     SyrAlbum* album;
     SyrTimelineTicket ticket;
@@ -46,6 +53,7 @@ SyrProducer* SyrRecordLabel_NewProducer(SyrRecordLabel* recordLabel,
 SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     SyrAlbum* album,
     SyrProducer* producer,
+    const SyrProductionType type,
     uint64_t* productionIdRef);
 
 SyrResult SyrRecordLabel_PollEvents(SyrRecordLabel* recordLabel,
