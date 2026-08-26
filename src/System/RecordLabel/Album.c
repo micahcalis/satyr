@@ -23,6 +23,12 @@ void SyrAlbum_AddSongs(SyrAlbum* album, SyrSong** songs, const size_t count)
     if (album == NULL || songs == NULL || count == 0)
         return;
 
+    if (count + SyrList_Count(album->songs) > SYR_MAX_DISC_SONGS)
+    {
+        SYR_ERROR("Failed to add Songs to Album (%s), Song overflow! (max is 64)", album->name);
+        return;
+    }
+
     SyrList_PushRange(album->songs, songs, count);
 }
 
@@ -113,9 +119,87 @@ SyrResult SyrAlbum_RecordSongs(SyrAlbum* album,
     return SYR_RESULT_SUCCESS;
 }
 
-void SyrAlbum_Reset(SyrAlbum* album)
+static SyrResult SyrAlbum_InitializeDiscAudioAssets(SyrDiscAsset* discAsset,
+    SyrAlbum* album)
 {
-    SyrList_Clear(album->songs);
+    for (uint32_t i = 0; i < discAsset->discCount; i++)
+    {
+        discAsset->audioAssets[i] = SYR_NEW(discAsset->audioAssets[i]);
+        SyrAudioAsset* audioAsset = discAsset->audioAssets[i];
+        SyrSong* song = album->songs[i];
+
+        audioAsset->channels = (uint8_t)SYR_AUDIO_ASSET_SAMPLE_MODE_MONO;
+        audioAsset->sampleRate = SYR_AUDIO_SAMPLE_RATE;
+        SYR_STR_COPY(audioAsset->name, SyrSong_GetName(song));
+        audioAsset->totalFrames = SyrSong_GetTotalFrames(song);
+        audioAsset->pcmData = SYR_ALLOC_ARRAY(float, audioAsset->totalFrames);
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+static inline void SyrAlbum_GetSongSizes(SyrAlbum* album, size_t* sizes)
+{
+    size_t songCount = SyrList_Count(album->songs);
+
+    for (size_t i = 0; i < songCount; i++)
+    {
+        sizes[i] = SyrSong_GetMasterSize(album->songs[i]);
+    }
+}
+
+SyrResult SyrAlbum_CreateDiscAsset(SyrAlbum* album,
+    SyrDiscAsset** discAsset)
+{
+    if (album->masterDisc == NULL)
+    {
+        SYR_ERROR("Can't Create Disc Asset with NULL Master Disc (Album: %s)!", album->name);
+        return SYR_RESULT_FAILED;
+    }
+
+    uint32_t songCount = (uint32_t)SyrList_Count(album->songs);
+    if (songCount == 0)
+    {
+        SYR_ERROR("Cannot create Disc Asset: Album (name: %s) has 0 songs!", album->name);
+        return SYR_RESULT_FAILED;
+    }
+
+    if (songCount > SYR_MAX_DISC_SONGS)
+    {
+        SYR_ERROR("Album (name: %s) exceeds maximum (%u) allowed songs per disc!", album->name, SYR_MAX_DISC_SONGS);
+        return SYR_RESULT_FAILED;
+    }
+
+    *discAsset = SYR_NEW(*discAsset);
+    (*discAsset)->discCount = songCount;
+    memset((*discAsset)->audioAssets, 0, sizeof((*discAsset)->audioAssets));
+    SYR_STR_COPY((*discAsset)->albumName, album->name);
+
+    if (SyrAlbum_InitializeDiscAudioAssets(*discAsset, album) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Initialize Disc Audio Assets for Album: %s", album->name);
+        SyrDiscAsset_Destroy(*discAsset, true);
+        *discAsset = NULL;
+        return SYR_RESULT_FAILED;
+    }
+
+    size_t songSizes[songCount];
+    SyrAlbum_GetSongSizes(album, songSizes);
+
+    if (SyrMasterDisc_BurnAsset(album->masterDisc,
+            *discAsset,
+            songSizes,
+            songCount,
+            SyrAlbum_GetAlbumTotalSize(album))
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Burn Disc Asset for Album: %s", album->name);
+        SyrDiscAsset_Destroy(*discAsset, true);
+        *discAsset = NULL;
+        return SYR_RESULT_FAILED;
+    }
+
+    return SYR_RESULT_SUCCESS;
 }
 
 size_t SyrAlbum_GetAlbumTotalSize(const SyrAlbum* album)

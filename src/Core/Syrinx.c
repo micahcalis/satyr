@@ -345,6 +345,7 @@ SyrMasterDisc* SyrSyrinx_CreateMasterDisc(SyrSyrinx* syrinx,
             SyrAlbum_GetAlbumTotalSize(album),
             SyrAlbum_GetName(album),
             syrinx->allocator,
+            syrinx->device,
             &masterDisc)
         != SYR_RESULT_SUCCESS)
     {

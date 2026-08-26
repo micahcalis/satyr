@@ -24,6 +24,9 @@ SyrResult SyrAlbum_RecordSongs(SyrAlbum* album,
     SyrProducer* producer,
     SyrTimelineTicket* timelineTicket);
 
+SyrResult SyrAlbum_CreateDiscAsset(SyrAlbum* album,
+    SyrDiscAsset** discAsset);
+
 size_t SyrAlbum_GetAlbumTotalSize(const SyrAlbum* album);
 uint32_t SyrAlbum_GetSongCount(const SyrAlbum* album);
 const char* SyrAlbum_GetName(const SyrAlbum* album);

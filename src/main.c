@@ -64,10 +64,12 @@ int main()
 
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
 
+    uint32_t testSamples = 1024 * 1000;
+
     SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
     metronomeConfig->phaseConfigs[0].bindings[0].instrumentIndex = 0;
     metronomeConfig->phaseConfigs[0].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
-    metronomeConfig->phaseConfigs[0].dispatchSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
+    metronomeConfig->phaseConfigs[0].dispatchSamples = testSamples;
     metronomeConfig->phaseConfigs[0].requiresMaster = true;
 
     SyrMetronome* metronome = NULL;
@@ -81,7 +83,7 @@ int main()
         .name = "testSong",
         .instrumentConfigs = &instrumentConfig,
         .instrumentCount = 1,
-        .masterSamples = 1024,
+        .masterSamples = testSamples,
         .melody = melody,
         .metronome = metronome};
 
@@ -106,6 +108,7 @@ int main()
 
     SyrPollEvents pollEvents;
     bool isComplete = false;
+    SyrDiscAsset* discAsset = NULL;
 
     SYR_LOG("Polling production events...");
     while (!isComplete)
@@ -122,31 +125,27 @@ int main()
                         SyrAlbum_GetName(event->production.album));
 
                     isComplete = true;
+                    discAsset = event->production.discAsset;
                 }
             }
         }
     }
 
-    uint64_t halfSegment = audioAsset->totalFrames / 10;
+    SYR_LOG("Disc Audio Asset count: %d", discAsset->discCount);
 
     SyrVinylConfig vinylConfig = {.name = "testVinyl",
-        .audioAsset = audioAsset,
-        .mode = SYR_VINYL_MODE_LOOP_SEGMENT,
-        .ownership = SYR_VINYL_ASSET_OWNERSHIP_RELAXED,
-        .frameSegmentBegin = 0,
-        .frameSegmentEnd = halfSegment};
+        .audioAsset = discAsset->audioAssets[0],
+        .mode = SYR_VINYL_MODE_LOOP,
+        .ownership = SYR_VINYL_ASSET_OWNERSHIP_RELAXED};
 
     SyrVinylId vinylId = SyrRecordPlayer_CreateVinyl(recordPlayer, &vinylConfig);
-    SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 1.0f, 0.8f);
+    SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 0.1f, 0.8f);
 
-    // SyrAudioAssetExportConfig exportConfig = {.filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/TestTestMotherfucker.mp3",
-    //     .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
-    //     .sampleRate = audioAsset->sampleRate};
+    SyrAudioAssetExportConfig exportConfig = {.filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Test.wav",
+        .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
+        .sampleRate = SYR_AUDIO_SAMPLE_RATE};
 
-    // if (SyrAudioAsset_ExportWAV(audioAsset, &exportConfig) != SYR_RESULT_SUCCESS)
-    // {
-    //     SYR_LOG("Fuck");
-    // }
+    SyrAudioAsset_ExportWAV(discAsset->audioAssets[0], &exportConfig);
 
     SYR_LOG("Press 'Enter' to Exit...");
     getchar();
@@ -157,6 +156,7 @@ int main()
 
     SyrMelody_Destroy(melody);
     SyrMetronome_Destroy(metronome);
+    SyrDiscAsset_Destroy(discAsset, true);
     SyrAudioAsset_Destroy(audioAsset);
 
     SyrRecordLabel_Destroy(recordLabel);

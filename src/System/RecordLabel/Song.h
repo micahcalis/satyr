@@ -33,4 +33,5 @@ SyrResult SyrSong_Release(SyrSong* song,
 
 size_t SyrSong_GetMasterSize(const SyrSong* song);
 const char* SyrSong_GetName(const SyrSong* song);
+uint32_t SyrSong_GetTotalFrames(const SyrSong* song);
 void SyrSong_Destroy(SyrSong* song);

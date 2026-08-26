@@ -57,6 +57,20 @@ typedef struct SyrListHeader
             ? ((l) = SyrList_GrowImplementation((l), (n), sizeof(*(l)), __FILE__, __LINE__)) \
             : 0)
 
+#define SyrList_RemoveAt(l, index)                                                                                    \
+    do                                                                                                                \
+    {                                                                                                                 \
+        if ((l) && (size_t)(index) < SyrList_Header(l)->count)                                                        \
+        {                                                                                                             \
+            size_t __syr_idx = (size_t)(index);                                                                       \
+            SyrList_Header(l)->count--;                                                                               \
+            if (__syr_idx < SyrList_Header(l)->count)                                                                 \
+            {                                                                                                         \
+                memmove(&(l)[__syr_idx], &(l)[__syr_idx + 1], (SyrList_Header(l)->count - __syr_idx) * sizeof(*(l))); \
+            }                                                                                                         \
+        }                                                                                                             \
+    } while (0)
+
 #define SyrList_Clear(l)                  \
     do                                    \
     {                                     \

@@ -126,6 +126,11 @@ const char* SyrSong_GetName(const SyrSong* song)
     return song->name;
 }
 
+uint32_t SyrSong_GetTotalFrames(const SyrSong* song)
+{
+    return song->masterBuffer->samples;
+}
+
 void SyrSong_Destroy(SyrSong* song)
 {
     if (song == NULL)

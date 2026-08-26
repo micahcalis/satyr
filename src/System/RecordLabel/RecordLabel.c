@@ -130,6 +130,7 @@ SyrResult SyrRecordLabel_StartProduction(SyrRecordLabel* recordLabel,
     production.album = album;
     production.producer = producer;
     production.type = type;
+    production.discAsset = NULL;
 
     if (type == SYR_PRODUCTION_TYPE_RECORD_RELEASE)
     {
@@ -180,15 +181,34 @@ SyrResult SyrRecordLabel_PollEvents(SyrRecordLabel* recordLabel,
 
     pollEvents->count = SyrList_Count(recordLabel->activeProductions);
 
-    for (size_t i = 0; i < SyrList_Count(recordLabel->activeProductions); i++)
+    for (int32_t i = (int32_t)pollEvents->count - 1; i >= 0; i--)
     {
         SyrProductionEvent* event = &pollEvents->events[i];
         SyrProduction* production = &recordLabel->activeProductions[i];
-        SyrProductionState completionEvent = production->type == SYR_PRODUCTION_TYPE_RECORD
-            ? SYR_PRODUCTION_STATE_RECORDED
-            : SYR_PRODUCTION_STATE_RELEASED;
+        bool shouldRelease = production->type == SYR_PRODUCTION_TYPE_RECORD_RELEASE;
+        SyrProductionState completionEvent = shouldRelease
+            ? SYR_PRODUCTION_STATE_RELEASED
+            : SYR_PRODUCTION_STATE_RECORDED;
 
-        event->state = SyrProducer_IsTicketComplete(production->producer, &production->ticket)
+        bool ticketComplete = SyrProducer_IsTicketComplete(production->producer, &production->ticket);
+
+        if (ticketComplete)
+        {
+            SyrList_RemoveAt(recordLabel->activeProductions, i);
+
+            if (shouldRelease)
+            {
+                if (SyrAlbum_CreateDiscAsset(production->album,
+                        &production->discAsset)
+                    != SYR_RESULT_SUCCESS)
+                {
+                    SYR_ERROR("Failed to create Disc Asset for Production: %s", production->ticket.name);
+                    return SYR_RESULT_FAILED;
+                }
+            }
+        }
+
+        event->state = ticketComplete
             ? completionEvent
             : SYR_PRODUCTION_STATE_UNRECORDED;
 

@@ -25,6 +25,7 @@ typedef struct SyrProduction
     SyrProducer* producer;
     SyrAlbum* album;
     SyrTimelineTicket ticket;
+    SyrDiscAsset* discAsset;
 } SyrProduction;
 
 typedef struct SyrProductionEvent
