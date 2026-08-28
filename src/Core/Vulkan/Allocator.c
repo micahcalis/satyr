@@ -118,13 +118,25 @@ static SyrResult SyrAllocator_CreateDescriptorLayout(const uint32_t ssboCount,
 
     VkDescriptorSetLayoutBinding bindings[SYR_DESCRIPTOR_SSBO_LIMIT + 1];
 
-    for (uint32_t i = 0; i < ssboCount + 1; i++)
+    bindings[SYR_UNIFORM_SETTINGS_SLOT] = (VkDescriptorSetLayoutBinding){
+        .binding = SYR_UNIFORM_SETTINGS_SLOT,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+    };
+
+    bindings[SYR_STORAGE_SETTINGS_SLOT] = (VkDescriptorSetLayoutBinding){
+        .binding = SYR_STORAGE_SETTINGS_SLOT,
+        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+    };
+
+    for (uint32_t i = SYR_SETTING_SSBO_COUNT; i < ssboCount + SYR_SETTING_SSBO_COUNT; i++)
     {
-        // First binding is reserved for shader settings uniform buffer
         bindings[i] = (VkDescriptorSetLayoutBinding){
             .binding = i,
-            .descriptorType = (i == 0) ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-                                       : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
             .descriptorCount = 1,
             .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
             .pImmutableSamplers = NULL};
@@ -132,7 +144,7 @@ static SyrResult SyrAllocator_CreateDescriptorLayout(const uint32_t ssboCount,
 
     VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = ssboCount + 1;
+    layoutInfo.bindingCount = ssboCount + SYR_SETTING_SSBO_COUNT;
     layoutInfo.pBindings = bindings;
 
     if (vkCreateDescriptorSetLayout(allocator->device, &layoutInfo, NULL, &(*layout))

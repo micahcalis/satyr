@@ -10,6 +10,10 @@
 #define VMA_DEBUG_DETECT_CORRUPTION 1
 #include "VMA/vk_mem_alloc.h"
 
+#define SYR_SETTING_SSBO_COUNT 2
+#define SYR_UNIFORM_SETTINGS_SLOT 0
+#define SYR_STORAGE_SETTINGS_SLOT 1
+
 typedef struct SyrAllocator SyrAllocator;
 
 SyrResult SyrAllocator_Initialize(const SyrConfig* config,

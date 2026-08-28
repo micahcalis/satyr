@@ -1,10 +1,11 @@
 #include "Core/SatyrMacros.slang"
 
-SYR_SHADER_PARAMS
+SYR_NOTES_DATA
 {
     float _Test;
 }
 
+SYR_INSTRUMENT_DATA
 SYR_MASTER_BUFFER
 SYR_INSTRUMENT_BUFFER(_Example, 0)
 

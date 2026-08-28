@@ -40,10 +40,14 @@ typedef struct SyrAudioBuffer
 {
     SyrBufferAllocation* timeAllocation;
     SyrBufferAllocation* frequencyAllocation;
-    uint64_t samples;
+    uint64_t totalSamples;
+    uint32_t sampleRate;
+    SyrAudioAssetSampleMode sampleMode;
 } SyrAudioBuffer;
 
-SyrResult SyrAudioBuffer_Initialize(const uint64_t samples,
+SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
+    const uint32_t sampleRate,
+    const SyrAudioAssetSampleMode sampleMode,
     SyrAllocator* allocator,
     SyrAudioBuffer** audioBuffer);
 
@@ -51,13 +55,17 @@ void SyrAudioBuffer_Destroy(SyrAudioBuffer* audioBuffer);
 
 typedef struct SyrInstrumentConfig
 {
-    uint64_t samples;
+    uint64_t totalSamples;
+    uint32_t sampleRate;
+    SyrAudioAssetSampleMode sampleMode;
     const char name[32];
 } SyrInstrumentConfig;
 
 typedef struct SyrInstrument SyrInstrument;
 
-SyrResult SyrInstrument_Initialize(const uint64_t samples,
+SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
+    const uint32_t sampleRate,
+    const SyrAudioAssetSampleMode sampleMode,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument);

@@ -7,7 +7,7 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrTimeAudioSample) * audioBuffer->samples;
+    allocParams.size = sizeof(SyrTimeAudioSample) * audioBuffer->totalSamples;
 
     audioBuffer->timeAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
@@ -26,7 +26,7 @@ static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->samples;
+    allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->totalSamples;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
@@ -38,22 +38,26 @@ static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer
     return SYR_RESULT_SUCCESS;
 }
 
-SyrResult SyrAudioBuffer_Initialize(const uint64_t samples,
+SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
+    const uint32_t sampleRate,
+    const SyrAudioAssetSampleMode sampleMode,
     SyrAllocator* allocator,
     SyrAudioBuffer** audioBuffer)
 {
-    if (samples == 0)
+    if (totalSamples == 0)
     {
         SYR_ERROR("Can't create Audio Buffer with 0 Samples!");
         return SYR_RESULT_FAILED;
     }
 
     *audioBuffer = SYR_NEW(*audioBuffer);
-    (*audioBuffer)->samples = samples;
+    (*audioBuffer)->totalSamples = totalSamples;
+    (*audioBuffer)->sampleRate = sampleRate;
+    (*audioBuffer)->sampleMode = sampleMode;
 
     if (SyrAudioBuffer_CreateTimeAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
-        SYR_ERROR("Failed to create Time Allocation for Audio Buffer, samples: %llu", samples);
+        SYR_ERROR("Failed to create Time Allocation for Audio Buffer, samples: %llu", totalSamples);
         SyrAudioBuffer_Destroy(*audioBuffer);
         *audioBuffer = NULL;
         return SYR_RESULT_FAILED;
@@ -61,7 +65,7 @@ SyrResult SyrAudioBuffer_Initialize(const uint64_t samples,
 
     if (SyrAudioBuffer_CreateFrequencyAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
-        SYR_ERROR("Failed to create Frequency Allocation for Audio Buffer, samples: %llu", samples);
+        SYR_ERROR("Failed to create Frequency Allocation for Audio Buffer, samples: %llu", totalSamples);
         SyrAudioBuffer_Destroy(*audioBuffer);
         *audioBuffer = NULL;
         return SYR_RESULT_FAILED;
@@ -94,7 +98,9 @@ typedef struct SyrInstrument
     char name[32];
 } SyrInstrument;
 
-SyrResult SyrInstrument_Initialize(const uint64_t samples,
+SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
+    const uint32_t sampleRate,
+    const SyrAudioAssetSampleMode sampleMode,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument)
@@ -102,7 +108,9 @@ SyrResult SyrInstrument_Initialize(const uint64_t samples,
     *instrument = SYR_NEW(*instrument);
     SYR_STR_COPY((*instrument)->name, name);
 
-    if (SyrAudioBuffer_Initialize(samples,
+    if (SyrAudioBuffer_Initialize(totalSamples,
+            sampleRate,
+            sampleMode,
             allocator,
             &(*instrument)->audioBuffer)
         != SYR_RESULT_SUCCESS)
@@ -134,13 +142,13 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
 {
     uint32_t assetSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
 
-    if (assetSamples > instrument->audioBuffer->samples)
+    if (assetSamples > instrument->audioBuffer->totalSamples)
     {
         SYR_ERROR("Asset Samples (name: %s, samples: %u) are greater than Instrument allocated Samples (name %s, samples: %llu)",
             audioAsset->name,
             assetSamples,
             instrument->name,
-            instrument->audioBuffer->samples);
+            instrument->audioBuffer->totalSamples);
 
         return SYR_RESULT_FAILED;
     }
@@ -202,10 +210,10 @@ uint64_t SyrAudioBuffer_GetTotalFrames(const SyrAudioBuffer* audioBuffer, const 
     switch (sampleMode)
     {
     case SYR_AUDIO_ASSET_SAMPLE_MODE_MONO:
-        return audioBuffer->samples;
+        return audioBuffer->totalSamples;
     case SYR_AUDIO_ASSET_SAMPLE_MODE_STEREO:
-        return audioBuffer->samples * 2;
-    default: return audioBuffer->samples;
+        return audioBuffer->totalSamples * 2;
+    default: return audioBuffer->totalSamples;
     }
 }
 

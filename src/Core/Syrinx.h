@@ -17,6 +17,9 @@ SyrResult SyrSyrinx_Initialize(const SyrConfig* config,
 SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
     const SyrNotesData notesData);
 
+SyrInstrumentBuffer* SyrSyrinx_CreateInstrumentBuffer(SyrSyrinx* syrinx,
+    const uint32_t instrumentCount);
+
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config);
 

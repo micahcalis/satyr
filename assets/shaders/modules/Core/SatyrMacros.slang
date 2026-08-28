@@ -3,10 +3,10 @@
 
 import Core.SatyrCore;
 
-#define SYR_SHADER_PARAMS [[vk::binding(0, 0)]] cbuffer ShaderParams
-#define SYR_RW_BUFFER(name, type, idx) [[vk::binding(idx, 0)]] RWStructuredBuffer<type> name;
-#define SYR_MASTER_BUFFER [[vk::binding(1, 0)]] RWStructuredBuffer<float> _MasterTime; [[vk::binding(2, 0)]] RWStructuredBuffer<Satyr.Complex> _MasterFrequency; 
-#define SYR_INSTRUMENT_BUFFER(name, index) [[vk::binding(index * 2 + 3, 0)]] RWStructuredBuffer<float> name##Time; [[vk::binding(index * 2 + 3 + 1, 0)]] RWStructuredBuffer<Satyr.Complex> name##Frequency;
+#define SYR_NOTES_DATA [[vk::binding(0, 0)]] cbuffer ShaderParams
+#define SYR_INSTRUMENT_DATA [[vk::binding(1, 0)]] StructuredBuffer<Satyr.InstrumentData> _InstrumentData;
+#define SYR_MASTER_BUFFER [[vk::binding(2, 0)]] RWStructuredBuffer<float> _MasterTime; [[vk::binding(3, 0)]] RWStructuredBuffer<Satyr.Complex> _MasterFrequency; 
+#define SYR_INSTRUMENT_BUFFER(name, index) [[vk::binding(index * 2 + 4, 0)]] RWStructuredBuffer<float> name##Time; [[vk::binding(index * 2 + 4 + 1, 0)]] RWStructuredBuffer<Satyr.Complex> name##Frequency;
 
 #define SYR_TG_SIZE_S  [numthreads(8, 1, 1)]  [shader("compute")]
 #define SYR_TG_SIZE_M  [numthreads(16, 1, 1)] [shader("compute")]
