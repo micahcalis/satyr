@@ -1,5 +1,10 @@
 #include "Metronome.h"
 
+typedef struct SyrMetronome
+{
+    SyrList(SyrMetronomePhase) phases;
+} SyrMetronome;
+
 SyrResult SyrMetronome_Initialize(SyrMetronomeConfig* config,
     SyrMetronome** metronome)
 {
@@ -220,6 +225,14 @@ SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
 
             return SYR_RESULT_RUNTIME_ERROR;
         }
+    }
+
+    if (SyrChord_WriteInstrumentData(chord) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Write Instrument Data to Chord %s",
+            SyrChord_GetName(chord));
+
+        return SYR_RESULT_RUNTIME_ERROR;
     }
 
     return SYR_RESULT_SUCCESS;

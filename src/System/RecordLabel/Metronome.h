@@ -33,10 +33,7 @@ typedef struct SyrMetronomeConfig
     uint32_t phaseCount;
 } SyrMetronomeConfig;
 
-typedef struct SyrMetronome
-{
-    SyrList(SyrMetronomePhase) phases;
-} SyrMetronome;
+typedef struct SyrMetronome SyrMetronome;
 
 SyrResult SyrMetronome_Initialize(SyrMetronomeConfig* config,
     SyrMetronome** metronome);

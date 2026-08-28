@@ -25,5 +25,13 @@ SyrResult SyrSong_Initialize(SyrAudioBuffer* masterBuffer,
 
 void SyrSong_AddInstruments(SyrSong* song, SyrInstrument** instruments, size_t count);
 SyrResult SyrSong_Record(SyrSong* song, SyrCommandBuffer* commandBuffer);
+
+SyrResult SyrSong_Release(SyrSong* song,
+    SyrCommandBuffer* commandBuffer,
+    SyrBufferAllocation* releaseBuffer,
+    const size_t offset);
+
+size_t SyrSong_GetMasterSize(const SyrSong* song);
 const char* SyrSong_GetName(const SyrSong* song);
+uint64_t SyrSong_GetTotalFrames(const SyrSong* song);
 void SyrSong_Destroy(SyrSong* song);

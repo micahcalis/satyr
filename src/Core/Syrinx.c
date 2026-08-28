@@ -88,10 +88,38 @@ SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
     return noteBuffer;
 }
 
+SyrInstrumentBuffer* SyrSyrinx_CreateInstrumentBuffer(SyrSyrinx* syrinx,
+    const uint32_t instrumentCount)
+{
+    uint32_t dataCount = instrumentCount + SYR_MASTER_INSTRUMENT_DATA_COUNT;
+
+    SyrBufferAllocParams allocParams = {0};
+    allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+    allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    allocParams.size = sizeof(SyrInstrumentData) * (size_t)dataCount;
+
+    SyrBufferAllocation* bufferAllocation = SyrAllocator_AllocateBuffer(allocParams, syrinx->allocator);
+
+    SyrInstrumentBuffer* instrumentBuffer = NULL;
+
+    if (SyrInstrumentBuffer_Initialize(dataCount,
+            bufferAllocation,
+            &instrumentBuffer)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Syrinx failed to create Instrument Buffer!");
+        return NULL;
+    }
+
+    return instrumentBuffer;
+}
+
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config)
 {
     uint32_t ssboCount = SYR_MASTER_SSBO_COUNT + config->instrumentCount * SYR_INSTRUMENT_SSBO_COUNT;
+    SYR_LOG("ssboCount: %u", ssboCount);
     SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(ssboCount,
         syrinx->allocator);
 
@@ -126,11 +154,23 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
         return NULL;
     }
 
+    SyrInstrumentBuffer* instrumentBuffer = SyrSyrinx_CreateInstrumentBuffer(syrinx, config->instrumentCount);
+
+    if (instrumentBuffer == NULL)
+    {
+        SYR_ERROR("Failed to create Chord Instrument Buffer: %s!", config->name);
+        SyrNoteBuffer_Destroy(noteBuffer);
+        SyrPipeline_Destroy(pipeline);
+        SyrDescriptor_Destroy(descriptor);
+        return NULL;
+    }
+
     SyrChord* chord = NULL;
 
     if (SyrChord_Initialize(pipeline,
             descriptor,
             noteBuffer,
+            instrumentBuffer,
             config->name,
             config->instrumentCount,
             config->threadGroupSize,
@@ -138,6 +178,7 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
         != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Failed to create Chord: %s!", config->name);
+        SyrInstrumentBuffer_Destroy(instrumentBuffer);
         SyrNoteBuffer_Destroy(noteBuffer);
         SyrPipeline_Destroy(pipeline);
         SyrDescriptor_Destroy(descriptor);
@@ -148,6 +189,8 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     {
         SyrChord_WriteNotes(chord, config->noteBufferData, config->notesData.size, 0);
     }
+
+    SyrChord_WriteInstrumentData(chord);
 
     return chord;
 }
@@ -233,7 +276,9 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
 {
     SyrInstrument* instrument = NULL;
 
-    if (SyrInstrument_Initialize(config->samples,
+    if (SyrInstrument_Initialize(config->totalSamples,
+            config->sampleRate,
+            config->sampleMode,
             config->name,
             syrinx->allocator,
             &instrument)
@@ -252,6 +297,8 @@ SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
     SyrAudioBuffer* masterBuffer = NULL;
 
     if (SyrAudioBuffer_Initialize(masterSamples,
+            SYR_AUDIO_SAMPLE_RATE,
+            SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
             syrinx->allocator,
             &masterBuffer)
         != SYR_RESULT_SUCCESS)
@@ -334,6 +381,26 @@ SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
     }
 
     return album;
+}
+
+SyrMasterDisc* SyrSyrinx_CreateMasterDisc(SyrSyrinx* syrinx,
+    const SyrAlbum* album)
+{
+    SyrMasterDisc* masterDisc = NULL;
+
+    if (SyrMasterDisc_Initialize(SyrAlbum_GetSongCount(album),
+            SyrAlbum_GetAlbumTotalSize(album),
+            SyrAlbum_GetName(album),
+            syrinx->allocator,
+            syrinx->device,
+            &masterDisc)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to create MasterDisc: %s", SyrAlbum_GetName(album));
+        return NULL;
+    }
+
+    return masterDisc;
 }
 
 SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx)

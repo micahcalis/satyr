@@ -30,4 +30,10 @@ void SyrCommandBuffer_BindDescriptor(SyrCommandBuffer* commandBuffer,
 
 void SyrCommandBuffer_BindPipeline(SyrCommandBuffer* commandBuffer, const SyrPipeline* pipeline);
 void SyrCommandBuffer_Dispatch(SyrCommandBuffer* commandBuffer, const uint32_t threadGroupCount);
+
+SyrResult SyrCommandBuffer_CopyBuffer(SyrCommandBuffer* commandBuffer,
+    SyrBufferAllocation* sourceBuffer,
+    SyrBufferAllocation* destinationBuffer,
+    const size_t destinationOffset);
+
 void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer);

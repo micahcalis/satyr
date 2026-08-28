@@ -1,10 +1,103 @@
 #include "Chord.h"
 
+typedef struct SyrInstrumentBuffer
+{
+    SyrList(SyrInstrumentData) instrumentData;
+    SyrBufferAllocation* bufferAllocation;
+} SyrInstrumentBuffer;
+
+SyrResult SyrInstrumentBuffer_Initialize(uint32_t dataCount,
+    SyrBufferAllocation* bufferAllocation,
+    SyrInstrumentBuffer** instrumentBuffer)
+{
+    if (dataCount > SYR_MAX_INSTRUMENTS + SYR_MASTER_INSTRUMENT_DATA_COUNT)
+    {
+        SYR_ERROR("Instrument Count higher than max (%u), can't create Instrument Buffer!",
+            SYR_MAX_INSTRUMENTS);
+
+        return SYR_RESULT_FAILED;
+    }
+
+    *instrumentBuffer = SYR_NEW(*instrumentBuffer);
+    (*instrumentBuffer)->bufferAllocation = bufferAllocation;
+    (*instrumentBuffer)->instrumentData = NULL;
+
+    SyrInstrumentData emptyData = {0};
+
+    for (uint32_t i = 0; i < dataCount; i++)
+    {
+        SyrList_Push((*instrumentBuffer)->instrumentData, emptyData);
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+void SyrInstrumentBuffer_SetInstrumentData(SyrInstrumentBuffer* instrumentBuffer,
+    const SyrAudioBuffer* audioBuffer,
+    const uint32_t dataIndex)
+{
+    int32_t dataCount = (int32_t)SyrList_Count(instrumentBuffer->instrumentData);
+    if ((int32_t)dataIndex >= dataCount)
+    {
+        SYR_ERROR("Instrument Buffer Index (%u) out of range, max is %u!",
+            dataIndex,
+            dataCount - 1);
+
+        return;
+    }
+
+    SyrInstrumentData* data = &instrumentBuffer->instrumentData[dataIndex];
+    data->totalSamples = audioBuffer->totalSamples;
+    data->sampleRate = audioBuffer->sampleRate;
+    data->sampleMode = (uint32_t)audioBuffer->sampleMode;
+}
+
+SyrResult SyrInstrumentBuffer_UploadData(SyrInstrumentBuffer* instrumentBuffer,
+    const size_t size)
+{
+    SyrResult uploadResult = SyrBufferAllocation_Upload(instrumentBuffer->bufferAllocation,
+        (void*)instrumentBuffer->instrumentData,
+        size,
+        0);
+
+    if (uploadResult != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Upload Data on Instrument Buffer!");
+        return uploadResult;
+    }
+
+    return SYR_RESULT_SUCCESS;
+}
+
+static uint32_t SyrInstrumentBuffer_GetDataIndex(const uint32_t instrumentSlot)
+{
+    return instrumentSlot + SYR_MASTER_INSTRUMENT_DATA_COUNT;
+}
+
+void SyrInstrumentBuffer_Destroy(SyrInstrumentBuffer* instrumentBuffer)
+{
+    if (instrumentBuffer == NULL)
+        return;
+
+    if (instrumentBuffer->instrumentData != NULL)
+    {
+        SyrList_Free(instrumentBuffer->instrumentData);
+    }
+
+    if (instrumentBuffer->bufferAllocation != NULL)
+    {
+        SyrBufferAllocation_Destroy(instrumentBuffer->bufferAllocation);
+    }
+
+    SYR_FREE(instrumentBuffer);
+}
+
 typedef struct SyrChord
 {
     SyrPipeline* pipeline;
     SyrDescriptor* descriptor;
     SyrNoteBuffer* noteBuffer;
+    SyrInstrumentBuffer* instrumentBuffer;
     uint32_t instrumentCount;
     SyrThreadGroupSize threadGroupSize;
     char name[32];
@@ -13,6 +106,7 @@ typedef struct SyrChord
 SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     SyrDescriptor* descriptor,
     SyrNoteBuffer* noteBuffer,
+    SyrInstrumentBuffer* instrumentBuffer,
     const char name[32],
     const uint32_t instrumentCount,
     const SyrThreadGroupSize threadGroupSize,
@@ -22,6 +116,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     (*chord)->pipeline = pipeline;
     (*chord)->descriptor = descriptor;
     (*chord)->noteBuffer = noteBuffer;
+    (*chord)->instrumentBuffer = instrumentBuffer;
     (*chord)->instrumentCount = instrumentCount;
     (*chord)->threadGroupSize = threadGroupSize;
     SYR_STR_COPY((*chord)->name, name);
@@ -52,6 +147,24 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
     return SYR_RESULT_SUCCESS;
 }
 
+SyrResult SyrChord_WriteInstrumentData(SyrChord* chord)
+{
+    size_t size = sizeof(SyrInstrumentData) * SyrList_Count(chord->instrumentBuffer->instrumentData);
+    SyrResult uploadResult = SyrInstrumentBuffer_UploadData(chord->instrumentBuffer, size);
+
+    if (uploadResult != SYR_RESULT_SUCCESS)
+        return uploadResult;
+
+    SyrDescriptor_WriteBuffer(chord->descriptor,
+        chord->instrumentBuffer->bufferAllocation,
+        SYR_INSTRUMENT_DATA_DESCRIPTOR_BINDING,
+        SYR_BUFFER_TYPE_SSBO,
+        size,
+        0);
+
+    return SYR_RESULT_SUCCESS;
+}
+
 SyrResult SyrChord_WriteInstrument(SyrChord* chord,
     const SyrInstrument* instrument,
     const uint32_t instrumentSlot)
@@ -73,7 +186,7 @@ SyrResult SyrChord_WriteInstrument(SyrChord* chord,
         return SYR_RESULT_RUNTIME_ERROR;
     }
 
-    uint32_t instrumentTimeBinding = SYR_NOTE_BUFFER_UB_COUNT + SYR_MASTER_SSBO_COUNT + (instrumentSlot * SYR_INSTRUMENT_SSBO_COUNT);
+    uint32_t instrumentTimeBinding = SYR_SETTINGS_MASTER_SSBO_COUNT + (instrumentSlot * SYR_INSTRUMENT_SSBO_COUNT);
     uint32_t instrumentFrequencyBinding = instrumentTimeBinding + 1;
     const SyrAudioBuffer* audioBuffer = SyrInstrument_GetAudioBuffer(instrument);
 
@@ -90,6 +203,10 @@ SyrResult SyrChord_WriteInstrument(SyrChord* chord,
         SYR_BUFFER_TYPE_SSBO,
         audioBuffer->frequencyAllocation->info.size,
         0);
+
+    SyrInstrumentBuffer_SetInstrumentData(chord->instrumentBuffer,
+        audioBuffer,
+        SyrInstrumentBuffer_GetDataIndex(instrumentSlot));
 
     return SYR_RESULT_SUCCESS;
 }
@@ -110,6 +227,10 @@ SyrResult SyrChord_WriteMaster(SyrChord* chord,
         SYR_BUFFER_TYPE_SSBO,
         masterBuffer->frequencyAllocation->info.size,
         0);
+
+    SyrInstrumentBuffer_SetInstrumentData(chord->instrumentBuffer,
+        masterBuffer,
+        SYR_MASTER_INSTRUMENT_DATA_INDEX);
 
     return SYR_RESULT_SUCCESS;
 }
@@ -157,6 +278,11 @@ void SyrChord_Destroy(SyrChord* chord)
     if (chord->noteBuffer != NULL)
     {
         SyrNoteBuffer_Destroy(chord->noteBuffer);
+    }
+
+    if (chord->instrumentBuffer != NULL)
+    {
+        SyrInstrumentBuffer_Destroy(chord->instrumentBuffer);
     }
 
     SYR_FREE(chord);

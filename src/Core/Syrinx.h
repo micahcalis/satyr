@@ -17,6 +17,9 @@ SyrResult SyrSyrinx_Initialize(const SyrConfig* config,
 SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
     const SyrNotesData notesData);
 
+SyrInstrumentBuffer* SyrSyrinx_CreateInstrumentBuffer(SyrSyrinx* syrinx,
+    const uint32_t instrumentCount);
+
 SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config);
 
@@ -37,6 +40,9 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
 
 SyrAlbum* SyrSyrinx_CreateAlbum(SyrSyrinx* syrinx,
     const SyrAlbumConfig* config);
+
+SyrMasterDisc* SyrSyrinx_CreateMasterDisc(SyrSyrinx* syrinx,
+    const SyrAlbum* album);
 
 SyrDevice* SyrSyrinx_GetDevice(const SyrSyrinx* syrinx);
 void SyrSyrinx_Destroy(SyrSyrinx* syrinx);

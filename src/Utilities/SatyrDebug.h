@@ -14,7 +14,15 @@ typedef struct SyrMemoryRecord
     struct SyrMemoryRecord* next;
 } SyrMemoryRecord;
 
-static SyrMemoryRecord* g_SyrAllocHead = NULL;
+    #if defined(_MSC_VER)
+        #define SYR_WEAK __declspec(selectany)
+    #elif defined(__GNUC__) || defined(__clang__)
+        #define SYR_WEAK __attribute__((weak))
+    #else
+        #define SYR_WEAK static
+    #endif
+
+SYR_WEAK SyrMemoryRecord* g_SyrAllocHead = NULL;
 
 static inline void* Syr_DebugMalloc(size_t size, const char* file, int line)
 {
