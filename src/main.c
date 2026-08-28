@@ -77,7 +77,9 @@ int main()
 
     SyrInstrumentConfig instrumentConfig = {
         .name = "testInstrument",
-        .samples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO)};
+        .totalSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO),
+        .sampleRate = audioAsset->sampleRate,
+        .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO};
 
     SyrSongConfig songConfig = {
         .name = "testSong",
@@ -139,13 +141,18 @@ int main()
         .ownership = SYR_VINYL_ASSET_OWNERSHIP_RELAXED};
 
     SyrVinylId vinylId = SyrRecordPlayer_CreateVinyl(recordPlayer, &vinylConfig);
-    SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 0.1f, 0.8f);
+    SyrVoiceId voiceId = SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 0.1f, 0.8f);
 
     SyrAudioAssetExportConfig exportConfig = {.filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Test.wav",
         .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
         .sampleRate = SYR_AUDIO_SAMPLE_RATE};
 
     SyrAudioAsset_ExportWAV(discAsset->audioAssets[0], &exportConfig);
+
+    SYR_LOG("Press 'Enter' to Stop Voice...");
+    getchar();
+
+    SyrRecordPlayer_StopVoice(recordPlayer, voiceId);
 
     SYR_LOG("Press 'Enter' to Exit...");
     getchar();

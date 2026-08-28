@@ -2,6 +2,13 @@
 
 #include "Core/SatyrCore.h"
 
+typedef enum
+{
+    SYR_VOICE_STATE_FREE = 0,
+    SYR_VOICE_STATE_PLAYING = 1,
+    SYR_VOICE_STATE_STOPPING = 2
+} SyrVoiceState;
+
 typedef struct SyrVoice
 {
     const float* pcmData;
@@ -14,6 +21,6 @@ typedef struct SyrVoice
     float pitch;
     uint8_t channels;
     bool isLooping;
-    atomic_bool isPlaying;
+    _Atomic(SyrVoiceState) voiceState;
     atomic_uint generation;
 } SyrVoice;

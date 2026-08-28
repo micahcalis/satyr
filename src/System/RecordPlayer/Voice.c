@@ -11,11 +11,6 @@ void SyrVoice_SetPitch(SyrVoice* voice, float pitch)
     voice->pitch = pitch;
 }
 
-void SyrVoice_SetPlaying(SyrVoice* voice, bool playing)
-{
-    voice->isPlaying = playing;
-}
-
 float SyrVoice_CalculateSampleLerp(const SyrVoice* voice, const uint8_t channel)
 {
     if (!voice || !voice->pcmData || voice->totalFrames == 0 || voice->channels == 0)

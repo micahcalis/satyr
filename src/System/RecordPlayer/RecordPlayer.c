@@ -32,7 +32,7 @@ static void SyrAudioDevice_VoiceUpdate(SyrVoice* voice,
                 voice->cursorFrame -= (segmentLength > 0.0 ? segmentLength : 1.0);
             } else
             {
-                atomic_store_explicit(&voice->isPlaying, false, memory_order_release);
+                atomic_store_explicit(&voice->voiceState, SYR_VOICE_STATE_FREE, memory_order_release);
                 break;
             }
         }
@@ -67,7 +67,8 @@ static void SyrAudioDevice_DataCallback(MaDevice* deviceHandle, void* output, co
     for (int i = 0; i < SYR_MAX_VOICES; i++)
     {
         SyrVoice* voice = &recordPlayer->voices[i];
-        bool playing = atomic_load_explicit(&voice->isPlaying, memory_order_acquire);
+        SyrVoiceState voiceState = atomic_load_explicit(&voice->voiceState, memory_order_acquire);
+        bool playing = voiceState == SYR_VOICE_STATE_PLAYING;
 
         if (playing && voice->pcmData != NULL)
         {
@@ -76,6 +77,11 @@ static void SyrAudioDevice_DataCallback(MaDevice* deviceHandle, void* output, co
                 frameCount,
                 deviceChannels,
                 deviceSampleRate);
+        }
+
+        if (voiceState == SYR_VOICE_STATE_STOPPING)
+        {
+            atomic_store_explicit(&voice->voiceState, SYR_VOICE_STATE_FREE, memory_order_release);
         }
     }
 
@@ -159,12 +165,20 @@ static SyrVoiceId SyrRecordPlayer_TryGetVoiceId(SyrRecordPlayer* recordPlayer)
 {
     for (int i = 0; i < SYR_MAX_VOICES; i++)
     {
-        const SyrVoice* voice = &recordPlayer->voices[i];
+        SyrVoice* voice = &recordPlayer->voices[i];
+        SyrVoiceState expectedState = SYR_VOICE_STATE_FREE;
 
-        if (!atomic_load_explicit(&voice->isPlaying, memory_order_relaxed))
+        if (atomic_compare_exchange_strong_explicit(
+                &voice->voiceState,
+                &expectedState,
+                SYR_VOICE_STATE_PLAYING,
+                memory_order_acq_rel,
+                memory_order_relaxed))
         {
-            atomic_uint newGeneration = atomic_load_explicit(&voice->generation, memory_order_relaxed) + 1;
-            return SyrSlotId_Create(i, newGeneration);
+            uint32_t newGen = atomic_load_explicit(&voice->generation, memory_order_relaxed) + 1;
+            atomic_store_explicit(&voice->generation, newGen, memory_order_release);
+
+            return SyrSlotId_Create(i, newGen);
         }
     }
 
@@ -184,7 +198,6 @@ static void SyrRecordPlayer_CreateVoiceFromVinyl(SyrRecordPlayer* recordPlayer,
     voice->sampleRate = vinyl->audioAsset->sampleRate;
     voice->volume = volume;
     voice->pitch = pitch;
-    voice->cursorFrame = 0;
 
     switch (vinyl->mode)
     {
@@ -212,9 +225,6 @@ static void SyrRecordPlayer_CreateVoiceFromVinyl(SyrRecordPlayer* recordPlayer,
         voice->cursorFrame = 0.0;
         break;
     }
-
-    atomic_store_explicit(&voice->generation, generation, memory_order_release);
-    atomic_store_explicit(&voice->isPlaying, true, memory_order_release);
 }
 
 SyrVoiceId SyrRecordPlayer_PlayVinyl(SyrRecordPlayer* recordPlayer,
@@ -281,20 +291,32 @@ SyrVoice* SyrRecordPlayer_GetVoice(SyrRecordPlayer* recordPlayer,
 
     if (currentGeneration != generation)
     {
-        SYR_ERROR("Voice Generation outdated (%u), current is %u!",
-            generation,
-            currentGeneration);
-
         return NULL;
     }
 
-    if (!atomic_load_explicit(&voice->isPlaying, memory_order_acquire))
+    bool isPlaying = atomic_load_explicit(&voice->voiceState, memory_order_acquire) == SYR_VOICE_STATE_PLAYING;
+
+    if (!isPlaying)
     {
-        SYR_ERROR("Voice Finished Playing!");
         return NULL;
     }
 
     return voice;
+}
+
+SyrResult SyrRecordPlayer_StopVoice(SyrRecordPlayer* recordPlayer,
+    const SyrVoiceId voiceId)
+{
+    SyrVoice* voice = SyrRecordPlayer_GetVoice(recordPlayer, voiceId);
+
+    if (voice == NULL)
+    {
+        return SYR_RESULT_FAILED;
+    }
+
+    atomic_store_explicit(&voice->voiceState, SYR_VOICE_STATE_STOPPING, memory_order_release);
+
+    return SYR_RESULT_SUCCESS;
 }
 
 void SyrRecordPlayer_Destroy(SyrRecordPlayer* recordPlayer)

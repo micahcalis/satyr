@@ -26,4 +26,7 @@ SyrVoiceId SyrRecordPlayer_PlayVinyl(SyrRecordPlayer* recordPlayer,
 SyrVoice* SyrRecordPlayer_GetVoice(SyrRecordPlayer* recordPlayer,
     const SyrVoiceId voiceId);
 
+SyrResult SyrRecordPlayer_StopVoice(SyrRecordPlayer* recordPlayer,
+    const SyrVoiceId voiceId);
+
 void SyrRecordPlayer_Destroy(SyrRecordPlayer* recordPlayer);
