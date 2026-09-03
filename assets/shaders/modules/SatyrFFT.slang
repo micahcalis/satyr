@@ -43,10 +43,21 @@ namespace Satyr
             return Complex(a.real, -a.imaginary);
         }
     }
-    
+
+    public enum FFTSize : uint
+    {
+        XS = 128,
+        S = 256,
+        M = 512,
+        L = 1024,
+        XL = 2048,
+        XXL = 4096,
+        XXXL = 8192
+    }
+
     public struct FFTConstants
     {
-        public uint fftSize;
+        public FFTSize fftSize;
         public uint logSize;
         public uint threadGroupSize;
         public uint butterfliesPerThread;
@@ -68,12 +79,12 @@ namespace Satyr
         public __init(uint threadID, 
             uint groupID,
             uint threadGroupSize,
-            uint fftSize)
+            FFTSize fftSize)
         {
             this.threadID = threadID;
-            this.chunkStart = groupID * fftSize;
+            this.chunkStart = groupID * (uint)fftSize;
             this.threadGroupSize = threadGroupSize;
-            this.itemsPerThread = fftSize / threadGroupSize;
+            this.itemsPerThread = (uint)fftSize / threadGroupSize;
         }
 
         public FFTThread GetThread(uint index)

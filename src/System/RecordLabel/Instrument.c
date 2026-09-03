@@ -1,6 +1,6 @@
 #include "Instrument.h"
 
-static uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
+uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
     const SyrFFTSize fftSize)
 {
     uint32_t remainder = totalSamples % (uint32_t)fftSize;

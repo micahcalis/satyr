@@ -57,6 +57,9 @@ typedef struct SyrAudioBuffer
     uint32_t paddingSampleCount;
 } SyrAudioBuffer;
 
+uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
+    const SyrFFTSize fftSize);
+
 SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
     const SyrAudioAssetSampleMode sampleMode,
@@ -72,6 +75,7 @@ typedef struct SyrInstrumentConfig
     uint32_t sampleRate;
     SyrAudioAssetSampleMode sampleMode;
     SyrFFTSize fftSize;
+    SyrAudioAsset* sourceAsset;
     const char name[32];
 } SyrInstrumentConfig;
 

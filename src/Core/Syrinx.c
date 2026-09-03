@@ -290,6 +290,16 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
         return NULL;
     }
 
+    if (config->sourceAsset != NULL)
+    {
+        if (SyrInstrument_UploadAsset(instrument, config->sourceAsset) != SYR_RESULT_SUCCESS)
+        {
+            SYR_ERROR("Failed to upload Source Asset to Instrument: %s", config->name);
+            SyrInstrument_Destroy(instrument);
+            return NULL;
+        }
+    }
+
     return instrument;
 }
 

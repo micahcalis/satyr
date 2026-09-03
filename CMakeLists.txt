@@ -41,18 +41,31 @@ if(NOT EXISTS "${MINI_AUDIO_IMP_FILE}")
 "#include \"miniaudio.h\"\n\n")
 endif()
 
+
+# ==========================================
+# RenderDoc IMPLEMENTATION (VENDOR)
+# ==========================================
+
+set(RENDER_DOC_IMP_FILE "${CMAKE_BINARY_DIR}/renderdoc_app_implementation.c")
+if(NOT EXISTS "${RENDER_DOC_IMP_FILE}")
+    file(WRITE "${RENDER_DOC_IMP_FILE}"
+        "#define MINIAUDIO_IMPLEMENTATION\n"         
+"#include \"renderdoc_app.h\"\n\n")
+endif()
+
 # ==========================================
 # TARGET EXECUTABLE & INCLUDES
 # ==========================================
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.c")
 
-add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${MINI_AUDIO_IMP_FILE})
+add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${MINI_AUDIO_IMP_FILE} ${RENDER_DOC_IMP_FILE})
 
 target_include_directories(Satyr PRIVATE 
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/vendor/VMA
     ${CMAKE_SOURCE_DIR}/vendor/miniaudio
+    ${CMAKE_SOURCE_DIR}/vendor/renderdoc
 )
 
 target_link_libraries(Satyr PRIVATE 

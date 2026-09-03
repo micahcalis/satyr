@@ -253,7 +253,7 @@ uint32_t SyrMetronome_GetDispatchSamples(SyrMetronome* metronome,
     if (phaseIndex >= (uint32_t)SyrList_Count(metronome->phases))
         return 0;
 
-    return metronome->phases->dispatchSamples;
+    return metronome->phases[phaseIndex].dispatchSamples;
 }
 
 void SyrMetronome_Clear(SyrMetronome* metronome)
