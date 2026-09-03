@@ -159,6 +159,19 @@ SyrResult SyrCommandBuffer_CopyBuffer(SyrCommandBuffer* commandBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
+void SyrCommandBuffer_PushConstants(SyrCommandBuffer* commandBuffer,
+    SyrPipeline* pipeline,
+    const void* data,
+    const size_t size)
+{
+    vkCmdPushConstants(commandBuffer->commandBufferHandle,
+        SyrPipeline_GetLayout(pipeline),
+        VK_SHADER_STAGE_COMPUTE_BIT,
+        0,
+        size,
+        data);
+}
+
 void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer)
 {
     if (commandBuffer == NULL)

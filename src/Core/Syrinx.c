@@ -119,7 +119,6 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
     const SyrChordConfig* config)
 {
     uint32_t ssboCount = SYR_MASTER_SSBO_COUNT + config->instrumentCount * SYR_INSTRUMENT_SSBO_COUNT;
-    SYR_LOG("ssboCount: %u", ssboCount);
     SyrDescriptor* descriptor = SyrAllocator_AllocateDescriptor(ssboCount,
         syrinx->allocator);
 
@@ -133,6 +132,7 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
 
     if (SyrPipeline_Initialize(config->shaderPath,
             config->kernelIndex,
+            sizeof(SyrFFTConstants),
             SyrDescriptor_GetLayout(descriptor),
             syrinx->device,
             syrinx->pipelineCache,
@@ -174,6 +174,7 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
             config->name,
             config->instrumentCount,
             config->threadGroupSize,
+            config->fftSize,
             &chord)
         != SYR_RESULT_SUCCESS)
     {

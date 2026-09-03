@@ -46,6 +46,7 @@ static SyrResult SyrSong_PrePlayChord(SyrSong* song,
     const size_t phaseIndex)
 {
     if (SyrMetronome_BindPhaseBuffers(song->metronome,
+            commandBuffer,
             chord,
             phaseIndex,
             song->masterBuffer,

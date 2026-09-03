@@ -4,7 +4,7 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
     SyrBufferAllocParams allocParams = {0};
-    allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocParams.createFlags = 0;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     allocParams.size = sizeof(SyrTimeAudioSample) * audioBuffer->totalSamples;
@@ -19,14 +19,16 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
+#define SYR_STFT_OVERLAP_ALLOC_SCALAR 2
+
 static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
     SyrBufferAllocParams allocParams = {0};
-    allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    allocParams.createFlags = 0;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->totalSamples;
+    allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->totalSamples * SYR_STFT_OVERLAP_ALLOC_SCALAR;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 

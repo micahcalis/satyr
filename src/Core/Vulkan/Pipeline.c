@@ -169,12 +169,20 @@ static void SyrPipeline_GetEntryPointName(const uint32_t index, size_t maxLength
 
 SyrResult SyrPipeline_CreateLayout(SyrPipeline* pipeline,
     VkDescriptorSetLayout layout,
-    const char* shaderPath)
+    const char* shaderPath,
+    const size_t pushConstantsSize)
 {
+    VkPushConstantRange pushConstantRange = {0};
+    pushConstantRange.size = pushConstantsSize;
+    pushConstantRange.offset = 0;
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
     VkPipelineLayoutCreateInfo createInfo = {0};
     createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     createInfo.setLayoutCount = 1;
     createInfo.pSetLayouts = &layout;
+    createInfo.pushConstantRangeCount = 1;
+    createInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(pipeline->device,
             &createInfo,
@@ -229,6 +237,7 @@ SyrResult SyrPipeline_CreatePipeline(SyrPipeline* pipeline,
 
 SyrResult SyrPipeline_Initialize(const char* shaderPath,
     const uint32_t kernelIndex,
+    const size_t pushConstantsSize,
     VkDescriptorSetLayout setLayout,
     SyrDevice* device,
     SyrPipelineCache* pipelineCache,
@@ -255,7 +264,8 @@ SyrResult SyrPipeline_Initialize(const char* shaderPath,
 
     if (SyrPipeline_CreateLayout(*pipeline,
             setLayout,
-            shaderPath)
+            shaderPath,
+            pushConstantsSize)
         != SYR_RESULT_SUCCESS)
     {
         SyrPipeline_Destroy(*pipeline);

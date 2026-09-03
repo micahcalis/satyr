@@ -33,9 +33,13 @@
 #include "System/RecordPlayer/AudioDevice.h"
 #include "System/RecordPlayer/RecordPlayer.h"
 #include "System/RecordPlayer/Vinyl.h"
+#include "System/RecordPlayer/Voice.h"
 
 // Utilities
 #include "Utilities/DynamicArray.h"
+#include "Utilities/Math.h"
+#include "Utilities/SatyrDebug.h"
+#include "Utilities/SlotMap.h"
 
 #ifdef SATYR_IMPLEMENTATION
 
@@ -71,5 +75,6 @@
     #include "System/RecordPlayer/AudioDevice.c"
     #include "System/RecordPlayer/RecordPlayer.c"
     #include "System/RecordPlayer/Vinyl.c"
+    #include "System/RecordPlayer/Voice.c"
 
 #endif // SATYR_IMPLEMENTATION

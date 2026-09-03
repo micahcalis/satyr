@@ -55,7 +55,8 @@ int main()
         .instrumentCount = 1,
         .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
         .kernelIndex = 0,
-        .threadGroupSize = SYR_THREAD_GROUP_SIZE_L};
+        .threadGroupSize = SYR_THREAD_GROUP_SIZE_L,
+        .fftSize = SYR_FFT_SIZE_L};
 
     SyrMelodyConfig melodyConfig = {
         .name = "testMelody",
@@ -132,8 +133,6 @@ int main()
             }
         }
     }
-
-    SYR_LOG("Disc Audio Asset count: %d", discAsset->discCount);
 
     SyrVinylConfig vinylConfig = {.name = "testVinyl",
         .audioAsset = discAsset->audioAssets[0],

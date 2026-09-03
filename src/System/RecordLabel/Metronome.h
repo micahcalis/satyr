@@ -51,6 +51,7 @@ SyrResult SyrMetronome_RecordPhaseBarriers(SyrMetronome* metronome,
     SyrList(SyrInstrument*) instruments);
 
 SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
+    SyrCommandBuffer* commandBuffer,
     SyrChord* chord,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,

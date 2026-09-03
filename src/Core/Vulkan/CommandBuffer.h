@@ -36,4 +36,9 @@ SyrResult SyrCommandBuffer_CopyBuffer(SyrCommandBuffer* commandBuffer,
     SyrBufferAllocation* destinationBuffer,
     const size_t destinationOffset);
 
+void SyrCommandBuffer_PushConstants(SyrCommandBuffer* commandBuffer,
+    SyrPipeline* pipeline,
+    const void* data,
+    const size_t size);
+
 void SyrCommandBuffer_Destroy(SyrCommandBuffer* commandBuffer);

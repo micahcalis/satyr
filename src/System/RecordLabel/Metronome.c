@@ -173,6 +173,7 @@ SyrResult SyrMetronome_RecordPhaseBarriers(SyrMetronome* metronome,
 }
 
 SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
+    SyrCommandBuffer* commandBuffer,
     SyrChord* chord,
     const uint32_t phaseIndex,
     const SyrAudioBuffer* masterBuffer,
@@ -230,6 +231,14 @@ SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
     if (SyrChord_WriteInstrumentData(chord) != SYR_RESULT_SUCCESS)
     {
         SYR_ERROR("Failed to Write Instrument Data to Chord %s",
+            SyrChord_GetName(chord));
+
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    if (SyrChord_WriteFFTConstants(chord, commandBuffer) != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Push FFT Constants to Chord %s",
             SyrChord_GetName(chord));
 
         return SYR_RESULT_RUNTIME_ERROR;

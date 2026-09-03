@@ -43,8 +43,8 @@ namespace Satyr
             return Complex(a.real, -a.imaginary);
         }
     }
-
-        public struct FFTConstants
+    
+    public struct FFTConstants
     {
         public uint fftSize;
         public uint logSize;

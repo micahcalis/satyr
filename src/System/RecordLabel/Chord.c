@@ -92,6 +92,35 @@ void SyrInstrumentBuffer_Destroy(SyrInstrumentBuffer* instrumentBuffer)
     SYR_FREE(instrumentBuffer);
 }
 
+SyrResult SyrFFTConstants_Initialize(const SyrThreadGroupSize threadGroupSize,
+    const SyrFFTSize fftSize,
+    SyrFFTConstants* constants)
+{
+    if ((uint32_t)threadGroupSize > ((uint32_t)fftSize >> 1))
+    {
+        SYR_ERROR("Thread Group Size must be <= half the FFT Size!");
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    if ((((uint32_t)fftSize >> 1) % (uint32_t)threadGroupSize) != 0)
+    {
+        SYR_ERROR("FFT half-size must be evenly divisible by thread group size!");
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
+
+    constants->threadGroupSize = (uint32_t)threadGroupSize;
+    constants->fftSize = (uint32_t)fftSize;
+
+    constants->logSize = 0;
+    uint32_t logArg = constants->fftSize;
+    while (logArg >>= 1)
+        constants->logSize++;
+
+    constants->butterfliesPerThread = (constants->fftSize >> 1) / constants->threadGroupSize;
+
+    return SYR_RESULT_SUCCESS;
+}
+
 typedef struct SyrChord
 {
     SyrPipeline* pipeline;
@@ -100,6 +129,7 @@ typedef struct SyrChord
     SyrInstrumentBuffer* instrumentBuffer;
     uint32_t instrumentCount;
     SyrThreadGroupSize threadGroupSize;
+    SyrFFTConstants fftConstants;
     char name[32];
 } SyrChord;
 
@@ -110,6 +140,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     const char name[32],
     const uint32_t instrumentCount,
     const SyrThreadGroupSize threadGroupSize,
+    const SyrFFTSize fftSize,
     SyrChord** chord)
 {
     *chord = SYR_NEW(*chord);
@@ -120,6 +151,17 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     (*chord)->instrumentCount = instrumentCount;
     (*chord)->threadGroupSize = threadGroupSize;
     SYR_STR_COPY((*chord)->name, name);
+
+    if (SyrFFTConstants_Initialize(threadGroupSize,
+            fftSize,
+            &(*chord)->fftConstants)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to calculate FFT Constants for Chord: %s", name);
+        SyrChord_Destroy(*chord);
+        *chord = NULL;
+        return SYR_RESULT_RUNTIME_ERROR;
+    }
 
     return SYR_RESULT_SUCCESS;
 }
@@ -161,6 +203,17 @@ SyrResult SyrChord_WriteInstrumentData(SyrChord* chord)
         SYR_BUFFER_TYPE_SSBO,
         size,
         0);
+
+    return SYR_RESULT_SUCCESS;
+}
+
+SyrResult SyrChord_WriteFFTConstants(SyrChord* chord,
+    SyrCommandBuffer* commandBuffer)
+{
+    SyrCommandBuffer_PushConstants(commandBuffer,
+        chord->pipeline,
+        &chord->fftConstants,
+        sizeof(SyrFFTConstants));
 
     return SYR_RESULT_SUCCESS;
 }

@@ -14,6 +14,7 @@ void SyrPipelineCache_Destroy(SyrPipelineCache* pipelineCache);
 
 SyrResult SyrPipeline_Initialize(const char* shaderPath,
     const uint32_t kernelIndex,
+    const size_t pushConstantsSize,
     VkDescriptorSetLayout setLayout,
     SyrDevice* device,
     SyrPipelineCache* pipelineCache,

@@ -5,6 +5,7 @@
 #include "Core/Vulkan/Descriptor.h"
 #include "System/RecordLabel/Notes.h"
 #include "System/RecordLabel/Instrument.h"
+#include "Core/Vulkan/CommandBuffer.h"
 
 #define SYR_SETTINGS_MASTER_SSBO_COUNT 4
 #define SYR_MASTER_SSBO_COUNT 2
@@ -45,6 +46,29 @@ SyrResult SyrInstrumentBuffer_UploadData(SyrInstrumentBuffer* instrumentBuffer,
 
 void SyrInstrumentBuffer_Destroy(SyrInstrumentBuffer* instrumentBuffer);
 
+typedef enum
+{
+    SYR_FFT_SIZE_XS = 128,
+    SYR_FFT_SIZE_S = 256,
+    SYR_FFT_SIZE_M = 512,
+    SYR_FFT_SIZE_L = 1024,
+    SYR_FFT_SIZE_XL = 2048,
+    SYR_FFT_SIZE_XXL = 4096,
+    SYR_FFT_SIZE_XXXL = 8192,
+} SyrFFTSize;
+
+typedef struct SyrFFTConstants
+{
+    uint32_t fftSize;
+    uint32_t logSize;
+    uint32_t threadGroupSize;
+    uint32_t butterfliesPerThread;
+} SyrFFTConstants;
+
+SyrResult SyrFFTConstants_Initialize(const SyrThreadGroupSize threadGroupSize,
+    const SyrFFTSize fftSize,
+    SyrFFTConstants* constants);
+
 typedef struct SyrChordConfig
 {
     char name[32];
@@ -54,6 +78,7 @@ typedef struct SyrChordConfig
     char* shaderPath;
     uint32_t kernelIndex;
     SyrThreadGroupSize threadGroupSize;
+    SyrFFTSize fftSize;
 } SyrChordConfig;
 
 typedef struct SyrChord SyrChord;
@@ -65,6 +90,7 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     const char name[32],
     const uint32_t instrumentCount,
     const SyrThreadGroupSize threadGroupSize,
+    const SyrFFTSize fftSize,
     SyrChord** chord);
 
 SyrResult SyrChord_WriteNotes(SyrChord* chord,
@@ -73,6 +99,9 @@ SyrResult SyrChord_WriteNotes(SyrChord* chord,
     const size_t offset);
 
 SyrResult SyrChord_WriteInstrumentData(SyrChord* chord);
+
+SyrResult SyrChord_WriteFFTConstants(SyrChord* chord,
+    SyrCommandBuffer* commandBuffer);
 
 SyrResult SyrChord_WriteMaster(SyrChord* chord,
     const SyrAudioBuffer* masterBuffer);
