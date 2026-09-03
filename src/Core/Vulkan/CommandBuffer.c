@@ -137,16 +137,29 @@ void SyrCommandBuffer_Dispatch(SyrCommandBuffer* commandBuffer, const uint32_t t
 SyrResult SyrCommandBuffer_CopyBuffer(SyrCommandBuffer* commandBuffer,
     SyrBufferAllocation* sourceBuffer,
     SyrBufferAllocation* destinationBuffer,
+    const size_t copySize,
     const size_t destinationOffset)
 {
-    if ((destinationOffset + sourceBuffer->info.size) > destinationBuffer->info.size)
+    if ((destinationOffset + copySize) > destinationBuffer->info.size)
     {
         SYR_ERROR("Buffer copy exceeds destination buffer bounds!");
         return SYR_RESULT_FAILED;
     }
 
+    if (copySize > sourceBuffer->info.size)
+    {
+        SYR_ERROR("Buffer copy exceeds source buffer bounds!");
+        return SYR_RESULT_FAILED;
+    }
+
+    if (copySize == 0)
+    {
+        SYR_ERROR("Can't Buffer Copy with Size 0!");
+        return SYR_RESULT_FAILED;
+    }
+
     VkBufferCopy bufferCopy = {0};
-    bufferCopy.size = sourceBuffer->info.size;
+    bufferCopy.size = copySize;
     bufferCopy.srcOffset = 0;
     bufferCopy.dstOffset = destinationOffset;
 

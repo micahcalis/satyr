@@ -32,4 +32,6 @@ SyrResult SyrBufferAllocation_Upload(SyrBufferAllocation* bufferAllocation,
     const size_t size,
     const size_t offset);
 
+SyrResult SyrBufferAllocation_ClearMemory(SyrBufferAllocation* bufferAllocation);
+
 void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation);

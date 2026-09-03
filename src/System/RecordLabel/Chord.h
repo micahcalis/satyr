@@ -46,17 +46,6 @@ SyrResult SyrInstrumentBuffer_UploadData(SyrInstrumentBuffer* instrumentBuffer,
 
 void SyrInstrumentBuffer_Destroy(SyrInstrumentBuffer* instrumentBuffer);
 
-typedef enum
-{
-    SYR_FFT_SIZE_XS = 128,
-    SYR_FFT_SIZE_S = 256,
-    SYR_FFT_SIZE_M = 512,
-    SYR_FFT_SIZE_L = 1024,
-    SYR_FFT_SIZE_XL = 2048,
-    SYR_FFT_SIZE_XXL = 4096,
-    SYR_FFT_SIZE_XXXL = 8192,
-} SyrFFTSize;
-
 typedef struct SyrFFTConstants
 {
     uint32_t fftSize;

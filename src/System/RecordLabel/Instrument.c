@@ -1,18 +1,39 @@
 #include "Instrument.h"
 
+static uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
+    const SyrFFTSize fftSize)
+{
+    uint32_t remainder = totalSamples % (uint32_t)fftSize;
+
+    if (remainder == 0)
+    {
+        return 0;
+    }
+
+    return (uint32_t)fftSize - remainder;
+}
+
 static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
+    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSampleCount;
     SyrBufferAllocParams allocParams = {0};
-    allocParams.createFlags = 0;
+    allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrTimeAudioSample) * audioBuffer->totalSamples;
+    allocParams.size = sizeof(SyrTimeAudioSample) * paddedSamples;
 
     audioBuffer->timeAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
     if (audioBuffer->timeAllocation == NULL)
     {
+        return SYR_RESULT_FAILED;
+    }
+
+    if (SyrBufferAllocation_ClearMemory(audioBuffer->timeAllocation)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Clear Memory of Time Allocation!");
         return SYR_RESULT_FAILED;
     }
 
@@ -24,16 +45,24 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
 static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
+    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSampleCount;
     SyrBufferAllocParams allocParams = {0};
-    allocParams.createFlags = 0;
+    allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrFrequencyAudioSample) * audioBuffer->totalSamples * SYR_STFT_OVERLAP_ALLOC_SCALAR;
+    allocParams.size = sizeof(SyrFrequencyAudioSample) * paddedSamples * SYR_STFT_OVERLAP_ALLOC_SCALAR;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
     if (audioBuffer->frequencyAllocation == NULL)
     {
+        return SYR_RESULT_FAILED;
+    }
+
+    if (SyrBufferAllocation_ClearMemory(audioBuffer->frequencyAllocation)
+        != SYR_RESULT_SUCCESS)
+    {
+        SYR_ERROR("Failed to Clear Memory of Frequency Allocation!");
         return SYR_RESULT_FAILED;
     }
 
@@ -43,6 +72,7 @@ static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer
 SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
     const SyrAudioAssetSampleMode sampleMode,
+    const SyrFFTSize fftSize,
     SyrAllocator* allocator,
     SyrAudioBuffer** audioBuffer)
 {
@@ -56,6 +86,7 @@ SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     (*audioBuffer)->totalSamples = totalSamples;
     (*audioBuffer)->sampleRate = sampleRate;
     (*audioBuffer)->sampleMode = sampleMode;
+    (*audioBuffer)->paddingSampleCount = SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, fftSize);
 
     if (SyrAudioBuffer_CreateTimeAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
@@ -103,6 +134,7 @@ typedef struct SyrInstrument
 SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
     const SyrAudioAssetSampleMode sampleMode,
+    const SyrFFTSize fftSize,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument)
@@ -113,6 +145,7 @@ SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
     if (SyrAudioBuffer_Initialize(totalSamples,
             sampleRate,
             sampleMode,
+            fftSize,
             allocator,
             &(*instrument)->audioBuffer)
         != SYR_RESULT_SUCCESS)

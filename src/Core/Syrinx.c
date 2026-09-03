@@ -280,6 +280,7 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
     if (SyrInstrument_Initialize(config->totalSamples,
             config->sampleRate,
             config->sampleMode,
+            config->fftSize,
             config->name,
             syrinx->allocator,
             &instrument)
@@ -293,13 +294,15 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
 }
 
 SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
-    const uint32_t masterSamples)
+    const uint32_t masterSamples,
+    const SyrFFTSize fftSize)
 {
     SyrAudioBuffer* masterBuffer = NULL;
 
     if (SyrAudioBuffer_Initialize(masterSamples,
             SYR_AUDIO_SAMPLE_RATE,
             SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
+            fftSize,
             syrinx->allocator,
             &masterBuffer)
         != SYR_RESULT_SUCCESS)
@@ -320,7 +323,9 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
         return NULL;
     }
 
-    SyrAudioBuffer* masterBuffer = SyrSyrinx_CreateMasterBuffer(syrinx, config->masterSamples);
+    SyrAudioBuffer* masterBuffer = SyrSyrinx_CreateMasterBuffer(syrinx,
+        config->masterSamples,
+        config->masterFFTSize);
 
     if (masterBuffer == NULL)
     {

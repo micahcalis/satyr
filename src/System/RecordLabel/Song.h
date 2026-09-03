@@ -9,6 +9,7 @@ typedef struct SyrSongConfig
 {
     char name[32];
     uint32_t masterSamples;
+    SyrFFTSize masterFFTSize;
     SyrInstrumentConfig* instrumentConfigs;
     uint32_t instrumentCount;
     SyrMelody* melody;

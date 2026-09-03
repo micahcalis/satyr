@@ -34,6 +34,7 @@ void SyrCommandBuffer_Dispatch(SyrCommandBuffer* commandBuffer, const uint32_t t
 SyrResult SyrCommandBuffer_CopyBuffer(SyrCommandBuffer* commandBuffer,
     SyrBufferAllocation* sourceBuffer,
     SyrBufferAllocation* destinationBuffer,
+    const size_t copySize,
     const size_t destinationOffset);
 
 void SyrCommandBuffer_PushConstants(SyrCommandBuffer* commandBuffer,

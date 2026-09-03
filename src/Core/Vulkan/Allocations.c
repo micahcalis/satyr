@@ -68,6 +68,15 @@ SyrResult SyrBufferAllocation_Upload(SyrBufferAllocation* bufferAllocation,
     return SYR_RESULT_SUCCESS;
 }
 
+SyrResult SyrBufferAllocation_ClearMemory(SyrBufferAllocation* bufferAllocation)
+{
+    if (bufferAllocation->info.pMappedData == NULL)
+        return SYR_RESULT_RUNTIME_ERROR;
+
+    memset(bufferAllocation->info.pMappedData, 0, bufferAllocation->info.size);
+    return SYR_RESULT_SUCCESS;
+}
+
 void SyrBufferAllocation_Destroy(SyrBufferAllocation* allocation)
 {
     if (allocation == NULL)

@@ -25,6 +25,17 @@ typedef enum
     SYR_INSTRUMENT_SLOT_13 = 13
 } SyrInstrumentSlot;
 
+typedef enum
+{
+    SYR_FFT_SIZE_XS = 128,
+    SYR_FFT_SIZE_S = 256,
+    SYR_FFT_SIZE_M = 512,
+    SYR_FFT_SIZE_L = 1024,
+    SYR_FFT_SIZE_XL = 2048,
+    SYR_FFT_SIZE_XXL = 4096,
+    SYR_FFT_SIZE_XXXL = 8192,
+} SyrFFTSize;
+
 typedef struct SyrTimeAudioSample
 {
     float sample;
@@ -43,11 +54,13 @@ typedef struct SyrAudioBuffer
     uint64_t totalSamples;
     uint32_t sampleRate;
     SyrAudioAssetSampleMode sampleMode;
+    uint32_t paddingSampleCount;
 } SyrAudioBuffer;
 
 SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
     const SyrAudioAssetSampleMode sampleMode,
+    const SyrFFTSize fftSize,
     SyrAllocator* allocator,
     SyrAudioBuffer** audioBuffer);
 
@@ -58,6 +71,7 @@ typedef struct SyrInstrumentConfig
     uint64_t totalSamples;
     uint32_t sampleRate;
     SyrAudioAssetSampleMode sampleMode;
+    SyrFFTSize fftSize;
     const char name[32];
 } SyrInstrumentConfig;
 
@@ -66,6 +80,7 @@ typedef struct SyrInstrument SyrInstrument;
 SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
     const SyrAudioAssetSampleMode sampleMode,
+    const SyrFFTSize fftSize,
     const char name[32],
     SyrAllocator* allocator,
     SyrInstrument** instrument);

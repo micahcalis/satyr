@@ -56,7 +56,7 @@ int main()
         .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv",
         .kernelIndex = 0,
         .threadGroupSize = SYR_THREAD_GROUP_SIZE_L,
-        .fftSize = SYR_FFT_SIZE_L};
+        .fftSize = SYR_FFT_SIZE_XL};
 
     SyrMelodyConfig melodyConfig = {
         .name = "testMelody",
@@ -65,7 +65,7 @@ int main()
 
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
 
-    uint32_t testSamples = 1024 * 1000;
+    uint32_t testSamples = 1024 * 1001;
 
     SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
     metronomeConfig->phaseConfigs[0].bindings[0].instrumentIndex = 0;
@@ -80,13 +80,15 @@ int main()
         .name = "testInstrument",
         .totalSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO),
         .sampleRate = audioAsset->sampleRate,
-        .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO};
+        .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,
+        .fftSize = SYR_FFT_SIZE_XL};
 
     SyrSongConfig songConfig = {
         .name = "testSong",
         .instrumentConfigs = &instrumentConfig,
         .instrumentCount = 1,
         .masterSamples = testSamples,
+        .masterFFTSize = SYR_FFT_SIZE_XXXL,
         .melody = melody,
         .metronome = metronome};
 

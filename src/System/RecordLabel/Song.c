@@ -114,12 +114,13 @@ SyrResult SyrSong_Release(SyrSong* song,
     return SyrCommandBuffer_CopyBuffer(commandBuffer,
         song->masterBuffer->timeAllocation,
         releaseBuffer,
+        SyrSong_GetMasterSize(song),
         offset);
 }
 
 size_t SyrSong_GetMasterSize(const SyrSong* song)
 {
-    return song->masterBuffer->timeAllocation->info.size;
+    return song->masterBuffer->totalSamples * sizeof(SyrTimeAudioSample);
 }
 
 const char* SyrSong_GetName(const SyrSong* song)

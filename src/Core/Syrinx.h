@@ -33,7 +33,8 @@ SyrInstrument* SyrSyrinx_CreateInstrument(SyrSyrinx* syrinx,
     const SyrInstrumentConfig* config);
 
 SyrAudioBuffer* SyrSyrinx_CreateMasterBuffer(SyrSyrinx* syrinx,
-    const uint32_t masterSamples);
+    const uint32_t masterSamples,
+    const SyrFFTSize fftSize);
 
 SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
     const SyrSongConfig* config);
