@@ -22,7 +22,7 @@ SyrResult SyrInstrumentBuffer_Initialize(uint32_t dataCount,
     (*instrumentBuffer)->bufferAllocation = bufferAllocation;
     (*instrumentBuffer)->instrumentData = NULL;
 
-    SyrInstrumentData emptyData = {0};
+    SyrInstrumentData emptyData = { 0 };
 
     for (uint32_t i = 0; i < dataCount; i++)
     {
@@ -50,6 +50,7 @@ void SyrInstrumentBuffer_SetInstrumentData(SyrInstrumentBuffer* instrumentBuffer
     data->totalSamples = audioBuffer->totalSamples;
     data->sampleRate = audioBuffer->sampleRate;
     data->sampleMode = (uint32_t)audioBuffer->sampleMode;
+    data->paddingSamples = audioBuffer->paddingSamples;
 }
 
 SyrResult SyrInstrumentBuffer_UploadData(SyrInstrumentBuffer* instrumentBuffer,
@@ -94,6 +95,7 @@ void SyrInstrumentBuffer_Destroy(SyrInstrumentBuffer* instrumentBuffer)
 
 SyrResult SyrFFTConstants_Initialize(const SyrThreadGroupSize threadGroupSize,
     const SyrFFTSize fftSize,
+    const SyrWOLAMode wolaMode,
     SyrFFTConstants* constants)
 {
     if ((uint32_t)threadGroupSize > ((uint32_t)fftSize >> 1))
@@ -110,6 +112,7 @@ SyrResult SyrFFTConstants_Initialize(const SyrThreadGroupSize threadGroupSize,
 
     constants->threadGroupSize = (uint32_t)threadGroupSize;
     constants->fftSize = (uint32_t)fftSize;
+    constants->wolaMode = (uint32_t)wolaMode;
 
     constants->logSize = 0;
     uint32_t logArg = constants->fftSize;
@@ -129,6 +132,7 @@ typedef struct SyrChord
     SyrInstrumentBuffer* instrumentBuffer;
     uint32_t instrumentCount;
     SyrThreadGroupSize threadGroupSize;
+    SyrDispatchMode dispatchMode;
     SyrFFTConstants fftConstants;
     char name[32];
 } SyrChord;
@@ -140,7 +144,9 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     const char name[32],
     const uint32_t instrumentCount,
     const SyrThreadGroupSize threadGroupSize,
+    const SyrDispatchMode dispatchMode,
     const SyrFFTSize fftSize,
+    const SyrWOLAMode wolaMode,
     SyrChord** chord)
 {
     *chord = SYR_NEW(*chord);
@@ -150,10 +156,12 @@ SyrResult SyrChord_Initialize(SyrPipeline* pipeline,
     (*chord)->instrumentBuffer = instrumentBuffer;
     (*chord)->instrumentCount = instrumentCount;
     (*chord)->threadGroupSize = threadGroupSize;
+    (*chord)->dispatchMode = dispatchMode;
     SYR_STR_COPY((*chord)->name, name);
 
     if (SyrFFTConstants_Initialize(threadGroupSize,
             fftSize,
+            wolaMode,
             &(*chord)->fftConstants)
         != SYR_RESULT_SUCCESS)
     {
@@ -286,6 +294,28 @@ SyrResult SyrChord_WriteMaster(SyrChord* chord,
         SYR_MASTER_INSTRUMENT_DATA_INDEX);
 
     return SYR_RESULT_SUCCESS;
+}
+
+#define SYR_WOLA_OVERLAP_MUL 2
+
+uint32_t SyrChord_CalculateThreadGroupCount(const SyrChord* chord,
+    const uint32_t dispatchSamples)
+{
+    const uint32_t groupSize = (uint32_t)chord->threadGroupSize;
+    if (groupSize == 0)
+        return 0;
+
+    switch (chord->dispatchMode)
+    {
+    case SYR_DISPATCH_MODE_LINEAR:
+        return (dispatchSamples + groupSize - 1) / groupSize;
+
+    case SYR_DISPATCH_MODE_FFT:
+        uint32_t totalChunks = (dispatchSamples / chord->fftConstants.fftSize) * SYR_WOLA_OVERLAP_MUL;
+        return totalChunks;
+
+    default: return 0;
+    }
 }
 
 const char* SyrChord_GetName(const SyrChord* chord)

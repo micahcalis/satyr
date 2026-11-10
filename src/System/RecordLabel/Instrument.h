@@ -54,7 +54,7 @@ typedef struct SyrAudioBuffer
     uint64_t totalSamples;
     uint32_t sampleRate;
     SyrAudioAssetSampleMode sampleMode;
-    uint32_t paddingSampleCount;
+    uint32_t paddingSamples;
 } SyrAudioBuffer;
 
 uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,

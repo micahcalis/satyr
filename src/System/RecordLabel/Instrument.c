@@ -1,5 +1,8 @@
 #include "Instrument.h"
 
+#define SYR_STFT_OLA_SCALAR_TIME 3
+#define SYR_STFT_OLA_SCALAR_FREQ 2
+
 uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
     const SyrFFTSize fftSize)
 {
@@ -16,12 +19,12 @@ uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
 static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
-    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSampleCount;
-    SyrBufferAllocParams allocParams = {0};
+    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSamples;
+    SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrTimeAudioSample) * paddedSamples;
+    allocParams.size = sizeof(SyrTimeAudioSample) * paddedSamples * SYR_STFT_OLA_SCALAR_TIME;
 
     audioBuffer->timeAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
@@ -40,17 +43,15 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
-#define SYR_STFT_OVERLAP_ALLOC_SCALAR 2
-
 static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
-    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSampleCount;
-    SyrBufferAllocParams allocParams = {0};
+    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSamples;
+    SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrFrequencyAudioSample) * paddedSamples * SYR_STFT_OVERLAP_ALLOC_SCALAR;
+    allocParams.size = sizeof(SyrFrequencyAudioSample) * paddedSamples * SYR_STFT_OLA_SCALAR_FREQ;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
@@ -86,7 +87,7 @@ SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     (*audioBuffer)->totalSamples = totalSamples;
     (*audioBuffer)->sampleRate = sampleRate;
     (*audioBuffer)->sampleMode = sampleMode;
-    (*audioBuffer)->paddingSampleCount = SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, fftSize);
+    (*audioBuffer)->paddingSamples = SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, fftSize);
 
     if (SyrAudioBuffer_CreateTimeAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {

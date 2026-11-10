@@ -66,7 +66,7 @@ SyrResult SyrSyrinx_Initialize(const SyrConfig* config,
 SyrNoteBuffer* SyrSyrinx_CreateNoteBuffer(SyrSyrinx* syrinx,
     const SyrNotesData notesData)
 {
-    SyrBufferAllocParams allocParams = {0};
+    SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -93,7 +93,7 @@ SyrInstrumentBuffer* SyrSyrinx_CreateInstrumentBuffer(SyrSyrinx* syrinx,
 {
     uint32_t dataCount = instrumentCount + SYR_MASTER_INSTRUMENT_DATA_COUNT;
 
-    SyrBufferAllocParams allocParams = {0};
+    SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -174,7 +174,9 @@ SyrChord* SyrSyrinx_CreateChord(SyrSyrinx* syrinx,
             config->name,
             config->instrumentCount,
             config->threadGroupSize,
+            config->dispatchMode,
             config->fftSize,
+            config->wolaMode,
             &chord)
         != SYR_RESULT_SUCCESS)
     {
@@ -207,7 +209,7 @@ SyrMelody* SyrSyrinx_CreateMelody(SyrSyrinx* syrinx,
         return NULL;
     }
 
-    SyrChord* chords[SYR_MAX_CHORDS] = {0};
+    SyrChord* chords[SYR_MAX_CHORDS] = { 0 };
 
     for (uint32_t i = 0; i < config->chordCount; i++)
     {
@@ -356,7 +358,7 @@ SyrSong* SyrSyrinx_CreateSong(SyrSyrinx* syrinx,
         return NULL;
     }
 
-    SyrInstrument* instruments[SYR_MAX_INSTRUMENTS] = {0};
+    SyrInstrument* instruments[SYR_MAX_INSTRUMENTS] = { 0 };
 
     for (uint32_t i = 0; i < config->instrumentCount; i++)
     {

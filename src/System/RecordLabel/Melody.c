@@ -98,14 +98,14 @@ SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody)
     return metronomeConfig;
 }
 
-static uint32_t SyrMelody_GetThreadGroupCount(const uint32_t dispatchSamples, const SyrThreadGroupSize threadGroupSize)
-{
-    const uint32_t groupSize = (uint32_t)threadGroupSize;
-    if (groupSize == 0)
-        return 0;
+// static uint32_t SyrMelody_GetThreadGroupCount(const uint32_t dispatchSamples, const SyrThreadGroupSize threadGroupSize)
+// {
+//     const uint32_t groupSize = (uint32_t)threadGroupSize;
+//     if (groupSize == 0)
+//         return 0;
 
-    return (dispatchSamples + groupSize - 1) / groupSize;
-}
+//     return (dispatchSamples + groupSize - 1) / groupSize;
+// }
 
 SyrResult SyrMelody_PlayChord(SyrMelody* melody,
     SyrCommandBuffer* commandBuffer,
@@ -128,8 +128,8 @@ SyrResult SyrMelody_PlayChord(SyrMelody* melody,
         descriptor,
         pipeline);
 
-    uint32_t threadGroupCount = SyrMelody_GetThreadGroupCount(dispatchSamples,
-        SyrChord_GetThreadGroupSize(chord));
+    uint32_t threadGroupCount = SyrChord_CalculateThreadGroupCount(chord,
+        dispatchSamples);
 
     if (threadGroupCount == 0)
     {
