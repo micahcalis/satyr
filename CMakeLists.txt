@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 # Enable both C and CXX languages so CMake can build the VMA C++ implementation
-project(Satyr C CXX) 
+project(Satyr C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -37,20 +37,8 @@ endif()
 set(MINI_AUDIO_IMP_FILE "${CMAKE_BINARY_DIR}/miniaudio_implementation.c")
 if(NOT EXISTS "${MINI_AUDIO_IMP_FILE}")
     file(WRITE "${MINI_AUDIO_IMP_FILE}"
-        "#define MINIAUDIO_IMPLEMENTATION\n"         
+        "#define MINIAUDIO_IMPLEMENTATION\n"
 "#include \"miniaudio.h\"\n\n")
-endif()
-
-
-# ==========================================
-# RenderDoc IMPLEMENTATION (VENDOR)
-# ==========================================
-
-set(RENDER_DOC_IMP_FILE "${CMAKE_BINARY_DIR}/renderdoc_app_implementation.c")
-if(NOT EXISTS "${RENDER_DOC_IMP_FILE}")
-    file(WRITE "${RENDER_DOC_IMP_FILE}"
-        "#define MINIAUDIO_IMPLEMENTATION\n"         
-"#include \"renderdoc_app.h\"\n\n")
 endif()
 
 # ==========================================
@@ -59,16 +47,17 @@ endif()
 
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS "src/*.c")
 
-add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${MINI_AUDIO_IMP_FILE} ${RENDER_DOC_IMP_FILE})
+add_executable(Satyr ${SRC_FILES} ${VMA_IMP_FILE} ${MINI_AUDIO_IMP_FILE})
 
-target_include_directories(Satyr PRIVATE 
+target_include_directories(Satyr PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/vendor/VMA
     ${CMAKE_SOURCE_DIR}/vendor/miniaudio
     ${CMAKE_SOURCE_DIR}/vendor/renderdoc
+    ${CMAKE_SOURCE_DIR}/vendor/nsight
 )
 
-target_link_libraries(Satyr PRIVATE 
+target_link_libraries(Satyr PRIVATE
     Vulkan::Vulkan
 )
 
@@ -79,9 +68,9 @@ target_link_libraries(Satyr PRIVATE
 set(AUDIO_INPUT_DIR "${CMAKE_SOURCE_DIR}/assets/audio")
 set(AUDIO_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/audio")
 
-file(GLOB_RECURSE AUDIO_FILES 
-    CONFIGURE_DEPENDS 
-    "${AUDIO_INPUT_DIR}/*.wav" 
+file(GLOB_RECURSE AUDIO_FILES
+    CONFIGURE_DEPENDS
+    "${AUDIO_INPUT_DIR}/*.wav"
     "${AUDIO_INPUT_DIR}/*.mp3"
 )
 
@@ -114,7 +103,7 @@ add_dependencies(Satyr AudioAssets)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_program(SLANGC_EXECUTABLE slangc REQUIRED)
 
-add_custom_target(Shaders) 
+add_custom_target(Shaders)
 
 # 1. Define module directory and grab module files automatically
 set(SLANG_MODULES_DIR "${CMAKE_SOURCE_DIR}/assets/shaders/modules")
@@ -123,34 +112,34 @@ file(GLOB_RECURSE SLANG_MODULE_FILES CONFIGURE_DEPENDS "${SLANG_MODULES_DIR}/*.s
 function(add_slang_shader_target TARGET)
     cmake_parse_arguments("SHADER" "" "" "SOURCES" ${ARGN})
     list(GET SHADER_SOURCES 0 MAIN_SOURCE)
-    
+
     file(RELATIVE_PATH REL_SHADER_PATH "${CMAKE_SOURCE_DIR}/assets/shaders" "${MAIN_SOURCE}")
     get_filename_component(REL_DIR "${REL_SHADER_PATH}" DIRECTORY)
     get_filename_component(SHADER_BASE_NAME "${MAIN_SOURCE}" NAME_WE)
 
     set(SHADERS_OUTPUT_DIR "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/shaders/${REL_DIR}")
-    
+
     set(OUTPUT_SPV "${SHADERS_OUTPUT_DIR}/${SHADER_BASE_NAME}.spv")
 
     add_custom_command(
-        OUTPUT  ${OUTPUT_SPV} 
+        OUTPUT  ${OUTPUT_SPV}
         COMMAND ${CMAKE_COMMAND} -E make_directory "${SHADERS_OUTPUT_DIR}"
-        
+
         # RUN SLANGC SECOND: Generate the Bytecode and include the modules folder path
         COMMAND ${SLANGC_EXECUTABLE} "${MAIN_SOURCE}"
-                -target spirv -fvk-use-entrypoint-name -profile spirv_1_4 -emit-spirv-directly 
+                -target spirv -fvk-use-entrypoint-name -profile spirv_1_4 -emit-spirv-directly
                 -matrix-layout-column-major
-                -I "${SLANG_MODULES_DIR}" 
+                -I "${SLANG_MODULES_DIR}"
                 -o "${OUTPUT_SPV}"
                 -O3
-                
+
         WORKING_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets/shaders"
-        
+
         DEPENDS ${SHADER_SOURCES} ${COOKER_SCRIPT} ${SLANG_MODULE_FILES}
         COMMENT "Compiling Slang Shader: ${REL_SHADER_PATH}"
         VERBATIM
     )
-    
+
     add_custom_target(${TARGET} DEPENDS ${OUTPUT_SPV})
 endfunction()
 
@@ -173,10 +162,10 @@ foreach(SHADER_FILE ${ALL_SHADERS})
     string(REPLACE "/" "_" SAFE_TARGET_NAME "${REL_SHADER_PATH}")
     string(REPLACE "\\" "_" SAFE_TARGET_NAME "${SAFE_TARGET_NAME}")
     get_filename_component(SAFE_TARGET_NAME "${SAFE_TARGET_NAME}" NAME_WE)
-    
+
     set(TARGET_NAME "Shader_${SAFE_TARGET_NAME}")
     add_slang_shader_target(${TARGET_NAME} SOURCES "${SHADER_FILE}")
-    
+
     add_dependencies(Shaders ${TARGET_NAME})
 endforeach()
 
