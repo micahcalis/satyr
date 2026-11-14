@@ -36,6 +36,12 @@ typedef enum
     SYR_FFT_SIZE_XXXL = 8192,
 } SyrFFTSize;
 
+typedef enum
+{
+    SYR_PONG_STATE_FORWARDS = 0,
+    SYR_PONG_STATE_BACKWARDS = 1
+} SyrPongState;
+
 typedef struct SyrTimeAudioSample
 {
     float sample;
@@ -55,10 +61,14 @@ typedef struct SyrAudioBuffer
     uint32_t sampleRate;
     SyrAudioAssetSampleMode sampleMode;
     uint32_t paddingSamples;
+    SyrPongState frequencyPongState;
 } SyrAudioBuffer;
 
-uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
-    const SyrFFTSize fftSize);
+uint64_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint64_t totalSamples,
+    const uint32_t alignment);
+
+uint64_t SyrAudioBuffer_GetTotalPaddedSamples(const uint64_t totalSamples,
+    const uint32_t alignment);
 
 SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     const uint32_t sampleRate,
@@ -91,6 +101,8 @@ SyrResult SyrInstrument_Initialize(const uint64_t totalSamples,
 
 SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
     const SyrAudioAsset* audioAsset);
+
+void SyrInstrument_AdvanceFrequencyPongState(SyrInstrument* instrument);
 
 const SyrAudioBuffer* SyrInstrument_GetAudioBuffer(const SyrInstrument* instrument);
 uint64_t SyrAudioBuffer_GetTotalFrames(const SyrAudioBuffer* audioBuffer, const SyrAudioAssetSampleMode sampleMode);

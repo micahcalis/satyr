@@ -1,49 +1,12 @@
 module SatyrFFT;
 
+import SatyrTypes;
+using namespace Satyr;
+
 #define TAU 6.28318530717
 
 namespace Satyr
 {
-    public struct Complex
-    {
-        public float real;
-        public float imaginary;
-
-        public __init(float real, float imaginary)
-        {
-            this.real = real;
-            this.imaginary = imaginary;
-        }
-
-        public static Complex FromReal(float real)
-        {
-            return Complex(real, 0.0f);
-        }
-
-        public static Complex Add(Complex a, Complex b)
-        {
-            return Complex(a.real + b.real,
-                a.imaginary + b.imaginary);
-        }
-
-        public static Complex Subtract(Complex a, Complex b)
-        {
-            return Complex(a.real - b.real,
-                a.imaginary - b.imaginary);
-        }
-
-        public static Complex Mul(Complex a, Complex b)
-        {
-            return Complex(a.real * b.real - a.imaginary * b.imaginary,
-                a.real * b.imaginary + a.imaginary * b.real);
-        }
-
-        public static Complex Conjugate(Complex a)
-        {
-            return Complex(a.real, -a.imaginary);
-        }
-    }
-
     public enum FFTSize : uint
     {
         XS = 128,
@@ -108,8 +71,6 @@ namespace Satyr
         Add = true
     }
 
-    #define SYR_WOLA_HOP_SIZE 2
-
     public struct FFTThreadContainer
     {
         public uint threadID;
@@ -118,14 +79,14 @@ namespace Satyr
         public FFTSize fftSize;
         public uint hopSize;
         public uint itemsPerThread;
-        public uint timeExpandBorder;
+        public uint expandBorder;
+        public InstrumentData instrumentData;
 
         public __init(uint threadID,
             uint groupID,
             uint threadGroupSize,
             FFTSize fftSize,
-            uint totalSamples,
-            uint paddedSamples)
+            InstrumentData instrumentData)
         {
             this.threadID = threadID;
             this.chunkStart = groupID * (uint)fftSize;
@@ -133,7 +94,8 @@ namespace Satyr
             this.fftSize = fftSize;
             this.hopSize = fftSize / SYR_WOLA_HOP_SIZE;
             this.itemsPerThread = (uint)fftSize / threadGroupSize;
-            this.timeExpandBorder = totalSamples + paddedSamples;
+            this.expandBorder = (uint32_t)instrumentData.totalSamples + instrumentData.paddingSamples;
+            this.instrumentData = instrumentData;
         }
 
         public FFTThread GetLinearThread(uint index)
@@ -148,7 +110,7 @@ namespace Satyr
         public FFTThread GetUnmixedLinearThread(uint index)
         {
             FFTThread thread = GetLinearThread(index);
-            thread.index += timeExpandBorder;
+            thread.index += expandBorder;
 
             return thread;
         }
@@ -159,8 +121,15 @@ namespace Satyr
             thread.offset = (index % hopSize) + (overlapLayer * hopSize);
             uint currentFrame = index / hopSize;
             uint frameIndex = (currentFrame > overlapLayer) ? (currentFrame - overlapLayer) : 0;
-            thread.index = timeExpandBorder + (frameIndex * (uint)fftSize) + thread.offset;
+            thread.index = expandBorder + (frameIndex * (uint)fftSize) + thread.offset;
 
+            return thread;
+        }
+
+        public FFTThread GetFrequencyPongThread<let accessMode : BufferAccessMode>(uint index)
+        {
+            FFTThread thread = GetLinearThread(index);
+            thread.index = GetFrequencyPongIndex<accessMode>(thread.index, instrumentData);
             return thread;
         }
     }
@@ -207,7 +176,7 @@ namespace Satyr
             {
                 FFTThread mixedThread = threadContainer.GetLinearThread(i);
 
-                if (mixedThread.index >= threadContainer.timeExpandBorder) continue;
+                if (mixedThread.index >= threadContainer.expandBorder) continue;
 
                 FFTThread[SYR_WOLA_HOP_SIZE] unmixedThreads = GetGatherThreads(mixedThread.index);
 
@@ -313,7 +282,7 @@ namespace Satyr
                 }
                 else // direction == FFTDirection::Inverse
                 {
-                    thread = threadContainer.GetLinearThread(i);
+                    thread = threadContainer.GetFrequencyPongThread<BufferAccessMode::Read>(i);
                     reversalSample = handle.ReadFrequency(thread.index);
                 }
 

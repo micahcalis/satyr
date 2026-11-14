@@ -2,7 +2,9 @@
 #define SYRINX_MACROS_INCLUDED
 
 import SatyrCore;
+import SatyrTypes;
 import SatyrFFT;
+import SatyrPhaseVocoder;
 
 #define SYR_NOTES_DATA [[vk::binding(0, 0)]] cbuffer ShaderParams
 #define SYR_INSTRUMENT_DATA [[vk::binding(1, 0)]] StructuredBuffer<Satyr.InstrumentData> _InstrumentData;

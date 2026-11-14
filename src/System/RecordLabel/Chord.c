@@ -51,6 +51,7 @@ void SyrInstrumentBuffer_SetInstrumentData(SyrInstrumentBuffer* instrumentBuffer
     data->sampleRate = audioBuffer->sampleRate;
     data->sampleMode = (uint32_t)audioBuffer->sampleMode;
     data->paddingSamples = audioBuffer->paddingSamples;
+    data->pongState = audioBuffer->frequencyPongState;
 }
 
 SyrResult SyrInstrumentBuffer_UploadData(SyrInstrumentBuffer* instrumentBuffer,
@@ -227,8 +228,9 @@ SyrResult SyrChord_WriteFFTConstants(SyrChord* chord,
 }
 
 SyrResult SyrChord_WriteInstrument(SyrChord* chord,
-    const SyrInstrument* instrument,
-    const uint32_t instrumentSlot)
+    SyrInstrument* instrument,
+    const uint32_t instrumentSlot,
+    const bool pongFrequencyBuffer)
 {
     if (chord->instrumentCount == 0)
     {
@@ -268,6 +270,11 @@ SyrResult SyrChord_WriteInstrument(SyrChord* chord,
     SyrInstrumentBuffer_SetInstrumentData(chord->instrumentBuffer,
         audioBuffer,
         SyrInstrumentBuffer_GetDataIndex(instrumentSlot));
+
+    if (pongFrequencyBuffer)
+    {
+        SyrInstrument_AdvanceFrequencyPongState(instrument);
+    }
 
     return SYR_RESULT_SUCCESS;
 }
@@ -341,6 +348,11 @@ const SyrDescriptor* SyrChord_GetDescriptor(const SyrChord* chord)
 const SyrPipeline* SyrChord_GetPipeline(const SyrChord* chord)
 {
     return chord->pipeline;
+}
+
+SyrInstrumentBuffer* SyrChord_GetInstrumentBuffer(const SyrChord* chord)
+{
+    return chord->instrumentBuffer;
 }
 
 void SyrChord_Destroy(SyrChord* chord)

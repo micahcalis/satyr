@@ -1,8 +1,11 @@
 #include "Satyr.h"
 #include "Core/SatyrCore.h"
 #include "System/RecordLabel/Chord.h"
+#include "System/RecordLabel/Instrument.h"
+#include "System/RecordPlayer/AudioAsset.h"
 #include "Utilities/SatyrDebug.h"
 #include "renderdoc_app.h"
+#include <stdio.h>
 #include <windows.h>
 #include "NGFX_GPUTrace_Vulkan.h"
 
@@ -73,7 +76,8 @@ int main()
     SyrInitializeRenderDoc(&rdoc_api);
     SyrResult nsightInitialized = SyrInitializeNsight();
 
-    SYR_LOG("Press 'Enter' to Start..");
+    SYR_LOG("Press 'Enter' to Start...");
+    getchar();
 
     SyrSyrinx* syrinx = NULL;
     if (SyrSyrinx_Initialize(&SYR_MAIN_CONFIG, &syrinx) != SYR_RESULT_SUCCESS)
@@ -96,7 +100,7 @@ int main()
         return SYR_RESULT_FAILED;
     }
 
-    SyrAudioAssetLoadConfig audioLoadConfig = { .filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Denzel.mp3",
+    SyrAudioAssetLoadConfig audioLoadConfig = { .filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Nidalee.mp3",
         .name = "AudioClearCanvas",
         .sampleRate = SYR_AUDIO_SAMPLE_RATE,
         .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO };
@@ -105,9 +109,11 @@ int main()
 
     SyrAudioAsset_Load(&audioLoadConfig, &audioAsset);
 
-#define CHORD_COUNT 5
+    SYR_LOG("Total Samples: %zu", audioAsset->totalFrames);
 
-    SyrWOLAMode wolaMode = SYR_WOLA_MODE_HANN;
+#define CHORD_COUNT 6
+
+    SyrWOLAMode wolaMode = SYR_WOLA_MODE_HAMMING;
 
     float notesTest = 23234.f;
     SyrChordConfig chordConfigs[CHORD_COUNT] = {
@@ -124,9 +130,10 @@ int main()
             .dispatchMode = SYR_DISPATCH_MODE_FFT,
             .wolaMode = wolaMode },
         { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 1, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_FFT, .wolaMode = wolaMode },
-        { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 2, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_FFT, .wolaMode = wolaMode },
+        { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 2, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_LINEAR, .wolaMode = wolaMode },
         { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 3, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_FFT, .wolaMode = wolaMode },
-        { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 4, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_LINEAR, .wolaMode = wolaMode }
+        { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 4, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_FFT, .wolaMode = wolaMode },
+        { .name = "testChord", .notesData = { .name = "testNotesData", .size = sizeof(float) }, .noteBufferData = &notesTest, .instrumentCount = 1, .shaderPath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/shaders/compute/TestCompute.spv", .kernelIndex = 5, .threadGroupSize = SYR_THREAD_GROUP_SIZE_L, .fftSize = SYR_FFT_SIZE_L, .dispatchMode = SYR_DISPATCH_MODE_LINEAR, .wolaMode = wolaMode }
     };
 
     SyrMelodyConfig melodyConfig = {
@@ -137,9 +144,10 @@ int main()
 
     SyrMelody* melody = SyrSyrinx_CreateMelody(syrinx, &melodyConfig);
 
-    uint32_t testSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
-    uint32_t padding = SyrAudioBuffer_CalculatePaddingSampleCount(testSamples, SYR_FFT_SIZE_L);
-    uint32_t paddedSamples = testSamples + padding;
+    uint32_t paddedSamples = (uint32_t)SyrAudioBuffer_GetTotalPaddedSamples(
+        SyrAudioAsset_GetTotalSamples(audioAsset,
+            SYR_AUDIO_ASSET_SAMPLE_MODE_MONO),
+        (uint32_t)SYR_FFT_SIZE_L);
 
     SyrMetronomeConfig* metronomeConfig = SyrMelody_GetMetronomeConfigBody(melody);
 
@@ -155,6 +163,7 @@ int main()
 
     metronomeConfig->phaseConfigs[2].bindings[0].instrumentIndex = 0;
     metronomeConfig->phaseConfigs[2].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
+    metronomeConfig->phaseConfigs[2].bindings[0].pongFrequencyBuffer = true;
     metronomeConfig->phaseConfigs[2].dispatchSamples = paddedSamples;
     metronomeConfig->phaseConfigs[2].requiresMaster = true;
 
@@ -167,6 +176,11 @@ int main()
     metronomeConfig->phaseConfigs[4].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
     metronomeConfig->phaseConfigs[4].dispatchSamples = paddedSamples;
     metronomeConfig->phaseConfigs[4].requiresMaster = true;
+
+    metronomeConfig->phaseConfigs[5].bindings[0].instrumentIndex = 0;
+    metronomeConfig->phaseConfigs[5].bindings[0].instrumentSlot = SYR_INSTRUMENT_SLOT_0;
+    metronomeConfig->phaseConfigs[5].dispatchSamples = paddedSamples;
+    metronomeConfig->phaseConfigs[5].requiresMaster = true;
 
     SyrMetronome* metronome = NULL;
     SyrMetronome_Initialize(metronomeConfig, &metronome);
@@ -184,11 +198,16 @@ int main()
         .name = "testSong",
         .instrumentConfigs = &instrumentConfig,
         .instrumentCount = 1,
-        .masterSamples = testSamples,
+        .masterSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO),
         .masterFFTSize = SYR_FFT_SIZE_L,
         .melody = melody,
         .metronome = metronome
     };
+
+    if (rdoc_api)
+        rdoc_api->StartFrameCapture(NULL, NULL);
+
+    SyrNsightStartTrace(nsightInitialized);
 
     SyrSong* song = SyrSyrinx_CreateSong(syrinx, &songConfig);
 
@@ -205,11 +224,6 @@ int main()
 
     SyrAlbum_AddSongs(album, &song, 1);
     uint64_t productionId;
-
-    if (rdoc_api)
-        rdoc_api->StartFrameCapture(NULL, NULL);
-
-    SyrNsightStartTrace(nsightInitialized);
 
     if (SyrRecordLabel_StartProduction(recordLabel, album, producer, SYR_PRODUCTION_TYPE_RECORD_RELEASE, &productionId) == SYR_RESULT_SUCCESS)
     {
@@ -241,11 +255,6 @@ int main()
         }
     }
 
-    if (rdoc_api)
-        rdoc_api->EndFrameCapture(NULL, NULL);
-
-    SyrNsightEndTrace(nsightInitialized);
-
     SyrVinylConfig vinylConfig = { .name = "testVinyl",
         .audioAsset = discAsset->audioAssets[0],
         .mode = SYR_VINYL_MODE_LOOP,
@@ -253,6 +262,11 @@ int main()
 
     SyrVinylId vinylId = SyrRecordPlayer_CreateVinyl(recordPlayer, &vinylConfig);
     SyrVoiceId voiceId = SyrRecordPlayer_PlayVinyl(recordPlayer, vinylId, 1.0f, 1.0f);
+
+    if (rdoc_api)
+        rdoc_api->EndFrameCapture(NULL, NULL);
+
+    SyrNsightEndTrace(nsightInitialized);
 
     SyrAudioAssetExportConfig exportConfig = { .filePath = "C:/Users/micah/Desktop/Hobby/satyr/bin/assets/audio/Audio_Test.wav",
         .sampleMode = SYR_AUDIO_ASSET_SAMPLE_MODE_MONO,

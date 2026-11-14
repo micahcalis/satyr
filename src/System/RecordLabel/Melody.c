@@ -84,7 +84,9 @@ SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody)
         {
             SyrInstrumentBinding binding = {
                 .instrumentIndex = 0,
-                .instrumentSlot = SYR_INSTRUMENT_SLOT_0};
+                .instrumentSlot = SYR_INSTRUMENT_SLOT_0,
+                .pongFrequencyBuffer = false
+            };
 
             SyrList_Push(phaseConfig.bindings, binding);
         }
@@ -97,15 +99,6 @@ SyrMetronomeConfig* SyrMelody_GetMetronomeConfigBody(const SyrMelody* melody)
 
     return metronomeConfig;
 }
-
-// static uint32_t SyrMelody_GetThreadGroupCount(const uint32_t dispatchSamples, const SyrThreadGroupSize threadGroupSize)
-// {
-//     const uint32_t groupSize = (uint32_t)threadGroupSize;
-//     if (groupSize == 0)
-//         return 0;
-
-//     return (dispatchSamples + groupSize - 1) / groupSize;
-// }
 
 SyrResult SyrMelody_PlayChord(SyrMelody* melody,
     SyrCommandBuffer* commandBuffer,

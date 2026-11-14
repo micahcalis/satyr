@@ -44,6 +44,7 @@ typedef struct SyrInstrumentData
     uint32_t sampleRate;
     uint32_t sampleMode;
     uint32_t paddingSamples;
+    SyrPongState pongState;
 } SyrInstrumentData;
 
 typedef struct SyrInstrumentBuffer SyrInstrumentBuffer;
@@ -117,8 +118,9 @@ SyrResult SyrChord_WriteMaster(SyrChord* chord,
     const SyrAudioBuffer* masterBuffer);
 
 SyrResult SyrChord_WriteInstrument(SyrChord* chord,
-    const SyrInstrument* instrument,
-    const uint32_t instrumentSlot);
+    SyrInstrument* instrument,
+    const uint32_t instrumentSlot,
+    const bool pongFrequencyBuffer);
 
 uint32_t SyrChord_CalculateThreadGroupCount(const SyrChord* chord,
     const uint32_t dispatchSamples);
@@ -127,4 +129,5 @@ const char* SyrChord_GetName(const SyrChord* chord);
 uint32_t SyrChord_GetInstrumentCount(const SyrChord* chord);
 const SyrDescriptor* SyrChord_GetDescriptor(const SyrChord* chord);
 const SyrPipeline* SyrChord_GetPipeline(const SyrChord* chord);
+SyrInstrumentBuffer* SyrChord_GetInstrumentBuffer(const SyrChord* chord);
 void SyrChord_Destroy(SyrChord* chord);

@@ -114,7 +114,8 @@ SyrResult SyrAudioAsset_ExportWAV(SyrAudioAsset* audioAsset,
     return SYR_RESULT_SUCCESS;
 }
 
-uint64_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset, SyrAudioAssetSampleMode sampleMode)
+uint64_t SyrAudioAsset_GetTotalSamples(const SyrAudioAsset* audioAsset,
+    const SyrAudioAssetSampleMode sampleMode)
 {
     if (audioAsset == NULL)
         return 0;

@@ -3,23 +3,31 @@
 #define SYR_STFT_OLA_SCALAR_TIME 3
 #define SYR_STFT_OLA_SCALAR_FREQ 2
 
-uint32_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint32_t totalSamples,
-    const SyrFFTSize fftSize)
+uint64_t SyrAudioBuffer_CalculatePaddingSampleCount(const uint64_t totalSamples,
+    const uint32_t alignment)
 {
-    uint32_t remainder = totalSamples % (uint32_t)fftSize;
+    if (alignment == 0)
+        return 0;
+
+    uint64_t remainder = totalSamples % (uint64_t)alignment;
 
     if (remainder == 0)
-    {
         return 0;
-    }
 
-    return (uint32_t)fftSize - remainder;
+    return (uint64_t)alignment - remainder;
+}
+
+uint64_t SyrAudioBuffer_GetTotalPaddedSamples(const uint64_t totalSamples,
+    const uint32_t alignment)
+{
+    uint64_t paddingSamples = SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, alignment);
+    return totalSamples + paddingSamples;
 }
 
 static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
-    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSamples;
+    uint64_t paddedSamples = audioBuffer->totalSamples + (uint64_t)audioBuffer->paddingSamples;
     SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
@@ -43,15 +51,17 @@ static SyrResult SyrAudioBuffer_CreateTimeAlloc(SyrAudioBuffer* audioBuffer,
     return SYR_RESULT_SUCCESS;
 }
 
+#define SYR_FREQ_BUFFER_PONG_MUL 2
+
 static SyrResult SyrAudioBuffer_CreateFrequencyAlloc(SyrAudioBuffer* audioBuffer,
     SyrAllocator* allocator)
 {
-    uint32_t paddedSamples = audioBuffer->totalSamples + audioBuffer->paddingSamples;
+    uint64_t paddedSamples = audioBuffer->totalSamples + (uint64_t)audioBuffer->paddingSamples;
     SyrBufferAllocParams allocParams = { 0 };
     allocParams.createFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     allocParams.memoryFlags = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
     allocParams.usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-    allocParams.size = sizeof(SyrFrequencyAudioSample) * paddedSamples * SYR_STFT_OLA_SCALAR_FREQ;
+    allocParams.size = sizeof(SyrFrequencyAudioSample) * paddedSamples * SYR_STFT_OLA_SCALAR_FREQ * SYR_FREQ_BUFFER_PONG_MUL;
 
     audioBuffer->frequencyAllocation = SyrAllocator_AllocateBuffer(allocParams, allocator);
 
@@ -87,7 +97,8 @@ SyrResult SyrAudioBuffer_Initialize(const uint64_t totalSamples,
     (*audioBuffer)->totalSamples = totalSamples;
     (*audioBuffer)->sampleRate = sampleRate;
     (*audioBuffer)->sampleMode = sampleMode;
-    (*audioBuffer)->paddingSamples = SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, fftSize);
+    (*audioBuffer)->paddingSamples = (uint32_t)SyrAudioBuffer_CalculatePaddingSampleCount(totalSamples, (uint32_t)fftSize);
+    (*audioBuffer)->frequencyPongState = SYR_PONG_STATE_FORWARDS;
 
     if (SyrAudioBuffer_CreateTimeAlloc(*audioBuffer, allocator) != SYR_RESULT_SUCCESS)
     {
@@ -165,7 +176,7 @@ static float* SyrInstrument_DownmixStereo(const SyrAudioAsset* audioAsset)
     uint32_t assetSamples = SyrAudioAsset_GetTotalSamples(audioAsset, SYR_AUDIO_ASSET_SAMPLE_MODE_MONO);
     float* downmixSamples = SYR_ALLOC_ARRAY(float, assetSamples);
 
-    for (uint32_t i = 0; i < assetSamples; i++)
+    for (uint64_t i = 0; i < assetSamples; i++)
     {
         downmixSamples[i] = (audioAsset->pcmData[i * 2] + audioAsset->pcmData[i * 2 + 1]) * 0.5f;
     }
@@ -234,6 +245,17 @@ SyrResult SyrInstrument_UploadAsset(SyrInstrument* instrument,
     }
 
     return SYR_RESULT_SUCCESS;
+}
+
+void SyrInstrument_AdvanceFrequencyPongState(SyrInstrument* instrument)
+{
+    SyrPongState currentState = instrument->audioBuffer->frequencyPongState;
+
+    instrument->audioBuffer->frequencyPongState = (currentState == SYR_PONG_STATE_FORWARDS)
+        ? SYR_PONG_STATE_BACKWARDS
+        : SYR_PONG_STATE_FORWARDS;
+
+    SYR_LOG("Advance Pong State");
 }
 
 const SyrAudioBuffer* SyrInstrument_GetAudioBuffer(const SyrInstrument* instrument)

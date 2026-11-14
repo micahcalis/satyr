@@ -1,15 +1,10 @@
 module SatyrCore;
 
+import SatyrTypes;
 import SatyrFFT;
 
 namespace Satyr
 {
-    public enum AudioSampleMode : uint
-    {
-        Mono = 1,
-        Stereo = 2
-    }
-
     public enum InstrumentDataSlot : uint
     {
         Master = 0,
@@ -26,14 +21,6 @@ namespace Satyr
         Instrument10 = 11,
         Instrument11 = 12,
         Instrument12 = 13
-    }
-
-    public struct InstrumentData
-    {
-        public uint64_t totalSamples;
-        public uint sampleRate;
-        public AudioSampleMode sampleMode;
-        public uint paddingSamples;
     }
 
     public enum FFTKernelPhase : uint
@@ -95,8 +82,7 @@ namespace Satyr
                 data.groupID,
                 data.stftConstants.threadGroupSize,
                 data.stftConstants.fftSize,
-                (uint)data.instrumentData.totalSamples,
-                (uint)data.instrumentData.paddingSamples);
+                data.instrumentData);
         }
 
         [mutating] private void InitializeMixer(DSPEngineData data)

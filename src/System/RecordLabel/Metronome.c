@@ -29,10 +29,10 @@ SyrMetronomePhase* SyrMetronome_AddPhase(SyrMetronome* metronome,
         return NULL;
     }
 
-    SyrMetronomePhase phase = {.instrumentBindings = NULL,
+    SyrMetronomePhase phase = { .instrumentBindings = NULL,
         .instrumentCount = config->bindingCount,
         .requiresMaster = config->requiresMaster,
-        .dispatchSamples = config->dispatchSamples};
+        .dispatchSamples = config->dispatchSamples };
 
     for (size_t i = 0; i < phase.instrumentCount; i++)
     {
@@ -217,7 +217,8 @@ SyrResult SyrMetronome_BindPhaseBuffers(SyrMetronome* metronome,
 
         if (SyrChord_WriteInstrument(chord,
                 instruments[binding->instrumentIndex],
-                (uint32_t)binding->instrumentSlot)
+                (uint32_t)binding->instrumentSlot,
+                binding->pongFrequencyBuffer)
             != SYR_RESULT_SUCCESS)
         {
             SYR_ERROR("Failed to Write Instrument Buffer to Chord: %s, at Instrument Slot %u",

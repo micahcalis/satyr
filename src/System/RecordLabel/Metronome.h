@@ -9,6 +9,7 @@ typedef struct SyrInstrumentBinding
 {
     uint32_t instrumentIndex;
     SyrInstrumentSlot instrumentSlot;
+    bool pongFrequencyBuffer;
 } SyrInstrumentBinding;
 
 typedef struct SyrMetronomePhase
@@ -63,4 +64,3 @@ uint32_t SyrMetronome_GetDispatchSamples(SyrMetronome* metronome,
 void SyrMetronome_Clear(SyrMetronome* metronome);
 void SyrMetronome_Destroy(SyrMetronome* metronome);
 void SyrMetronomeConfig_Destroy(SyrMetronomeConfig* metronomeConfig);
-

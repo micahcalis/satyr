@@ -62,6 +62,45 @@ namespace Satyr
 
         engine.ExecutePhase();
     }
+
+    public struct PVHandle : IPVHandle
+    {
+        InstrumentData instrumentData;
+
+        public __init()
+        {
+            instrumentData = _InstrumentData[(uint)InstrumentDataSlot::Instrument0];
+        }
+
+        public InstrumentData GetInstrumentData()
+        {
+            return instrumentData;
+        }
+
+        public Complex ReadFrequency(uint index)
+        {
+            return _ExampleFrequency[index];
+        }
+
+        public void WriteFrequency(uint index, Complex value)
+        {
+            _ExampleFrequency[index] = value;
+        }
+    }
+
+    public static void ApplyRobotizationEffect(uint threadIndex)
+    {
+        PVHandle handle = PVHandle();
+        RobotizationEffect effect = RobotizationEffect();
+
+        PhaseVocoder<PVHandle, RobotizationEffect> phaseVocoder = PhaseVocoder<PVHandle, RobotizationEffect>(
+            handle,
+            effect,
+            threadIndex,
+            0);
+
+        phaseVocoder.ApplyEffect();
+    }
 }
 
 SYR_TG_SIZE_L
@@ -77,136 +116,26 @@ void SyrKernel_1(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
 }
 
 SYR_TG_SIZE_L
-void SyrKernel_2(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
+void SyrKernel_2(uint3 threadID : SV_DispatchThreadID)
 {
-    Satyr::ExampleKernelDSPEngine<Satyr::FFTKernelPhase::InverseFFT>(localID.x, groupID);
+    Satyr::ApplyRobotizationEffect(threadID.x);
 }
 
 SYR_TG_SIZE_L
 void SyrKernel_3(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
 {
+    Satyr::ExampleKernelDSPEngine<Satyr::FFTKernelPhase::InverseFFT>(localID.x, groupID);
+}
+
+SYR_TG_SIZE_L
+void SyrKernel_4(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
+{
     Satyr::ExampleKernelDSPEngine<Satyr::FFTKernelPhase::OverlapAddTime>(localID.x, groupID);
 }
 
 SYR_TG_SIZE_L
-void SyrKernel_4(uint3 id : SV_DispatchThreadID, uint groupID : SV_GroupID)
+void SyrKernel_5(uint3 threadID : SV_DispatchThreadID, uint groupID : SV_GroupID)
 {
     Satyr::FFTHandle fftHandle = Satyr::FFTHandle();
-    _MasterTime[id.x] = fftHandle.ReadTime(id.x);
+    _MasterTime[threadID.x] = fftHandle.ReadTime(threadID.x);
 }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_0(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     Satyr.InstrumentData instrumentData = _InstrumentData[(uint)Satyr.InstrumentDataSlot::Instrument0];
-
-//     Satyr.FFTThreadContainer threadContainer = Satyr.FFTThreadContainer(localID.x,
-//         groupID,
-//         _STFTConstants.threadGroupSize,
-//         _STFTConstants.fftSize,
-//         (uint)instrumentData.totalSamples,
-//         instrumentData.paddingSamples);
-
-//     Satyr.WOLAMixer<Satyr.FFTHandle> wolaMixer = Satyr.WOLAMixer<Satyr.FFTHandle>(
-//         fftHandle, _STFTConstants, Satyr.WOLADirection::Expand, threadContainer);
-
-//     wolaMixer.Mix();
-// }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_1(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     Satyr.InstrumentData instrumentData = _InstrumentData[(uint)Satyr.InstrumentDataSlot::Instrument0];
-
-//     Satyr.FFTThreadContainer threadContainer = Satyr.FFTThreadContainer(localID.x,
-//         groupID,
-//         _STFTConstants.threadGroupSize,
-//         _STFTConstants.fftSize,
-//         (uint)instrumentData.totalSamples,
-//         instrumentData.paddingSamples);
-
-//     Satyr.FFTComputer<Satyr.FFTHandle> fftComputer = Satyr.FFTComputer<Satyr.FFTHandle>(
-//         fftHandle, _STFTConstants, Satyr.FFTDirection::Forward, threadContainer);
-
-//     fftComputer.Compute();
-// }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_2(uint3 id : SV_DispatchThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     Satyr.Complex freq = fftHandle.ReadFrequency(id.x);
-
-//     uint fftSize = _STFTConstants.fftSize;
-//     uint localBin = id.x % fftSize;
-//     uint distanceFromDC = min(localBin, fftSize - localBin);
-//     float mag = sqrt((freq.real * freq.real) + (freq.imaginary * freq.imaginary));
-
-//     float gateThreshold = 1.5f;
-//     if (mag < gateThreshold)
-//     {
-//         mag = 0.0f;
-//     }
-
-//     freq.real = mag;
-//     freq.imaginary = 0.0f;
-
-//     if (distanceFromDC < 20)
-//     {
-//         freq.real = 0.0f;
-//         freq.imaginary = 0.0f;
-//     }
-
-//     freq.real *= 10.0f;
-//     freq.imaginary *= 5.0f;
-
-//     // temporarily turned off to test functionality
-//     //fftHandle.WriteFrequency(id.x, freq);
-// }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_3(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     Satyr.InstrumentData instrumentData = _InstrumentData[(uint)Satyr.InstrumentDataSlot::Instrument0];
-
-//     Satyr.FFTThreadContainer threadContainer = Satyr.FFTThreadContainer(localID.x,
-//         groupID,
-//         _STFTConstants.threadGroupSize,
-//         _STFTConstants.fftSize,
-//         (uint)instrumentData.totalSamples,
-//         instrumentData.paddingSamples);
-
-//     Satyr.FFTComputer<Satyr.FFTHandle> fftComputer = Satyr.FFTComputer<Satyr.FFTHandle>(
-//         fftHandle, _STFTConstants, Satyr.FFTDirection::Inverse, threadContainer);
-
-//     fftComputer.Compute();
-// }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_4(uint3 localID : SV_GroupThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     Satyr.InstrumentData instrumentData = _InstrumentData[(uint)Satyr.InstrumentDataSlot::Instrument0];
-
-//     Satyr.FFTThreadContainer threadContainer = Satyr.FFTThreadContainer(localID.x,
-//         groupID,
-//         _STFTConstants.threadGroupSize,
-//         _STFTConstants.fftSize,
-//         (uint)instrumentData.totalSamples,
-//         instrumentData.paddingSamples);
-
-//     Satyr.WOLAMixer<Satyr.FFTHandle> wolaMixer = Satyr.WOLAMixer<Satyr.FFTHandle>(
-//         fftHandle, _STFTConstants, Satyr.WOLADirection::Add, threadContainer);
-
-//     wolaMixer.Mix();
-// }
-
-// SYR_TG_SIZE_L
-// void SyrKernel_5(uint3 id : SV_DispatchThreadID, uint groupID : SV_GroupID)
-// {
-//     Satyr.FFTHandle fftHandle = Satyr.FFTHandle();
-//     _MasterTime[id.x] = fftHandle.ReadTime(id.x);
-// }
